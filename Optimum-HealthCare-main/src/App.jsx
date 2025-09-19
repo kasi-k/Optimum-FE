@@ -29,6 +29,7 @@ import Dashboard_Tab from "./pages/dashboard/new_dashboard/Dashboard_Tab";
 import Profile from "./pages/dashboard/profile/Profile";
 import Tasks from "./pages/tasks/Tasks";
 import ViewTasks from "./pages/tasks/ViewTasks";
+import { ToastContainer } from "react-toastify";
 
 const App = () => {
   return (
@@ -96,6 +97,18 @@ const App = () => {
           </Route>
         </Routes>
       </BrowserRouter>
+      <ToastContainer
+        position="top-right"
+        autoClose={2000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
     </>
   );
 };

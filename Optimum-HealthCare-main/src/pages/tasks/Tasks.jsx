@@ -5,85 +5,95 @@ import { LuEye } from "react-icons/lu";
 import { TbFileExport } from "react-icons/tb";
 import Filter from "../../component/Filter";
 import { useSearch } from "../../component/SearchBar";
-import { tasksData } from "../../component/Data";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, File, Pencil } from "lucide-react";
 import { RiDeleteBinLine } from "react-icons/ri";
 import NavBar from "../../component/NavBar";
 import AddTasks from "./AddTasks";
 import EditTasks from "./EditTasks";
+import axios from "axios";
+import { API, formatDate } from "../../Constant";
+import { toast } from "react-toastify";
 
 const Tasks = () => {
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [addTasks, setAddTasks] = useState(false);
   const [edittasks, setEdittasks] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
+
   const { searchTerm } = useSearch();
-  const [filteredData, setFilteredData] = useState([]);
+  const [filterParams, setFilterParams] = useState({
+    fromdate: "",
+    todate: "",
+  });
   const [currentPage, setCurrentPage] = useState(1);
-const navigate =useNavigate();
+  const [totalPages, setTotalPages] = useState(0);
 
   const itemsPerPage = 10;
-
-  useEffect(() => {
-    if (!searchTerm) {
-      setFilteredData(tasksData);
-      return;
-    }
-
-    const lowerSearchTerm = searchTerm.toString().toLowerCase();
-
-    const filtered = tasksData.filter((item) =>
-      Object.values(item).some((value) => {
-        const lowerValue = value.toString().toLowerCase();
-
-        if (lowerValue === lowerSearchTerm) return true;
-        if (!isNaN(searchTerm) && lowerValue.includes(searchTerm)) return true;
-        return lowerValue.startsWith(lowerSearchTerm);
-      })
-    );
-
-    setFilteredData(filtered);
-    setCurrentPage(1);
-  }, [searchTerm]);
-
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedData = filteredData.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
+  const navigate = useNavigate();
 
   const statusColorMap = {
-    Doing: "font-bold text-blue-700",
-    Completed: "font-bold text-green-700",
-    Incomplete: "font-bold text-red-700",
+    doing: "font-bold text-blue-700",
+    completed: "font-bold text-green-700",
+    incomplete: "font-bold text-red-700",
   };
+
+
+  // ✅ Fetch Tasks from API
+  const fetchTasks = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/task/getalltasks`, {
+        params: {
+          page: currentPage,
+          limit: itemsPerPage,
+          search: searchTerm,
+          fromdate: filterParams.fromdate,
+          todate: filterParams.todate,
+        },
+      });
+
+      setTasks(res.data.data || []);
+      setTotalPages(res.data.totalPages || 0);
+    } catch (err) {
+      toast.error("Failed to fetch tasks");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, [currentPage, searchTerm, filterParams]);
 
   return (
     <>
       <div>
         <NavBar title="Tasks" pagetitle="Tasks" />
         <div className="font-layout-font flex justify-end items-center gap-2 pb-2">
-          <p
-            onClick={() => {
-              setAddTasks(true);
-            }}
+          <button
+            onClick={() => setAddTasks(true)}
             className="cursor-pointer flex items-center dark:text-white gap-2 bg-select_layout-dark px-4 py-2 text-sm rounded-md"
           >
             <div className="relative w-6 h-6">
               <File className="absolute  w-6 h-6" />
               <AlertTriangle className="absolute left-1.5 top-2  w-3 h-3" />
             </div>
-            Add Task
-          </p>
+            <span>Add Task</span>
+          </button>
+
           <p className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md">
             <TbFileExport />
             Export
           </p>
-          <p className="cursor-pointer flex items-center gap-3 dark:text-white dark:bg-layout-dark bg-layout-light rounded-md">
-            <Filter />
-          </p>
+
+          <div className="cursor-pointer flex items-center gap-3 dark:text-white dark:bg-layout-dark bg-layout-light rounded-md">
+            <Filter onFilterChange={setFilterParams} />
+          </div>
         </div>
       </div>
+
       <div className="font-layout-font overflow-auto no-scrollbar">
         <table className="w-full xl:h-fit h-[703px] dark:text-white whitespace-nowrap">
           <thead>
@@ -102,26 +112,32 @@ const navigate =useNavigate();
             </tr>
           </thead>
           <tbody className="dark:bg-layout-dark bg-layout-light rounded-2xl dark:text-gray-200 text-gray-600 cursor-default">
-            {paginatedData.length > 0 ? (
-              paginatedData.map((data, index) => (
+            {loading ? (
+              <tr>
+                <td colSpan="7" className="text-center py-10">
+                  Loading tasks...
+                </td>
+              </tr>
+            ) : tasks.length > 0 ? (
+              tasks.map((data, index) => (
                 <tr
                   className="border-b-2 dark:border-overall_bg-dark border-overall_bg-light text-center"
-                  key={index}
+                  key={data._id}
                 >
                   <td className="rounded-l-lg">
                     {(currentPage - 1) * itemsPerPage + index + 1}
                   </td>
-                  <td>{data.task}</td>
-                  <td>{data.startDate}</td>
-                  <td>{data.dueDate}</td>
+                  <td>{data.task_title}</td>
+                  <td>{formatDate(data.start_date)}</td>
+                  <td>{formatDate(data.due_date)}</td>
                   <td>
-                    {Array.isArray(data.assignedTo)
-                      ? data.assignedTo.join(", ")
-                      : data.assignedTo}
+                    {Array.isArray(data.assigned_to)
+                      ? data.assigned_to.join(", ")
+                      : data.assigned_to}
                   </td>
-                  <td>
+                  <td className="first-letter:capitalize">
                     <span
-                      className={`px-2 py-1 rounded-full text-sm ${
+                      className={` px-2 py-1 rounded-full text-sm ${
                         statusColorMap[data.status] || "text-gray-700"
                       }`}
                     >
@@ -130,8 +146,14 @@ const navigate =useNavigate();
                   </td>
 
                   <td className="pl-4 p-2.5 rounded-r-lg">
-                    <button className="cursor-pointer bg-[#BAFFBA] text-green-600 w-fit rounded-sm py-1.5 px-1.5"
-                    onClick={()=>{navigate(`/tasks/viewtasks`)}}>
+                    <button
+                      className="cursor-pointer bg-[#BAFFBA] text-green-600 w-fit rounded-sm py-1.5 px-1.5"
+                      onClick={() => navigate(`/tasks/viewtasks`,{
+                        state:{
+                          task:data
+                        }
+                      })}
+                    >
                       <LuEye size={16} />
                     </button>{" "}
                     <button
@@ -151,7 +173,7 @@ const navigate =useNavigate();
               ))
             ) : (
               <tr>
-                <td colSpan="9" className="text-center py-10 text-gray-500">
+                <td colSpan="7" className="text-center py-10 text-gray-500">
                   No matching results found.
                 </td>
               </tr>
@@ -159,15 +181,15 @@ const navigate =useNavigate();
           </tbody>
         </table>
       </div>
+
       <Pagination
-        totalItems={filteredData.length}
+        totalItems={totalPages * itemsPerPage}
         itemsPerPage={itemsPerPage}
         currentPage={currentPage}
         onPageChange={setCurrentPage}
       />
 
-      {/* Pass task data here */}
-      {addTasks && <AddTasks onclose={() => setAddTasks(false)} />}
+      {addTasks && <AddTasks onclose={() => setAddTasks(false)}  onSuccess={fetchTasks}/>}
       {edittasks && (
         <EditTasks task={selectedTask} onclose={() => setEdittasks(false)} />
       )}

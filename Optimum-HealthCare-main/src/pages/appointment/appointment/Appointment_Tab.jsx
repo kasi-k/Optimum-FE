@@ -1,172 +1,89 @@
-import React, { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { toast } from "react-toastify";
+import Pagination from "../../../component/Pagination";
+import Filter from "../../../component/Filter";
+import { CiCalendar } from "react-icons/ci";
+import { TbCalendarTime, TbFileExport } from "react-icons/tb";
 import { HiArrowsUpDown } from "react-icons/hi2";
 import { LuEye } from "react-icons/lu";
 import { Pencil } from "lucide-react";
-import { TbFileExport } from "react-icons/tb";
-import Pagination from "../../../component/Pagination";
-import Filter from "../../../component/Filter";
-import { useSearch } from "../../../component/SearchBar";
-import { AppointmentData } from "../../../component/Data";
+
 import Calendar from "./Calendar";
-import { CiCalendar } from "react-icons/ci";
-import { TbCalendarTime } from "react-icons/tb";
 import CreateAppointment from "./CreateAppointment";
-import { IoClose } from "react-icons/io5";
 import Completed from "./Completed";
 import Reschedule from "./Reschedule";
 import ViewAppoinment from "./ViewAppoinment";
+import EditAppointment from "./EditAppointment"; // assuming this exists
 
-const EditAppointmentModal = ({ onclose }) => {
-  return (
-    <div className="font-layout-font fixed inset-0 grid z-20 justify-center items-center backdrop-blur-xs">
-      <div className="mx-2 p-4 shadow-lg dark:bg-popup-gray bg-layout-light dark:bg-layout-dark rounded-lg drop-shadow-2xl lg:w-[500px] md:w-[500px] w-96 relative">
-        <div className="grid p-4 text-layout_text-light dark:text-layout_text-dark">
-          <button
-            onClick={onclose}
-            className="place-self-end dark:bg-popup-gray bg-white dark:bg-layout-dark absolute rounded-full -top-5 -right-4 lg:shadow-md md:shadow-md shadow-none lg:py-3 md:py-3 py-0 lg:px-3 md:px-3 px-0"
-          >
-            <IoClose className="size-[24px]" />
-          </button>
-
-          <h1 className="text-center font-semibold text-xl py-2 mb-4 dark:text-white text-black">
-            Edit Appointment
-          </h1>
-
-          <form className="grid grid-cols-1 sm:grid-cols-2 space-y-2 gap-4 dark:text-white text-black">
-            {/* Channel */}
-            <div className="flex col-span-2 gap-5 justify-between items-center">
-              <label className=" font-medium">Name</label>
-              <input
-                type="text"
-                placeholder="name"
-                className="p-2 rounded-md w-72 bg-transparent border border-gray-600 dark:placeholder:text-white placeholder:text-black"
-              />
-            </div>
-
-            <div className="flex col-span-2 gap-5 justify-between items-center ">
-              <label className=" font-medium">Phone Number</label>
-              <input
-                type="text"
-                placeholder="mob.no"
-                className="p-2 rounded-md w-72 bg-transparent border border-gray-600 dark:placeholder:text-white placeholder:text-black"
-              />
-            </div>
-
-            <div className="flex col-span-2 gap-5 justify-between items-center ">
-              <label className="font-medium"> Date</label>
-              <input
-                type="date"
-                className="p-2 rounded-md w-72 bg-transparent border border-gray-600 dark:placeholder:text-white placeholder:text-black"
-              />
-            </div>
-
-            <div className="flex col-span-2 gap-5 justify-between items-center ">
-              <label className=" font-medium">Slot</label>
-              <input
-                type="text"
-                placeholder="Slot"
-                className="p-2 rounded-md w-72 bg-transparent border border-gray-600 dark:placeholder:text-white placeholder:text-black"
-              />
-            </div>
-
-            <div className="flex col-span-2 gap-5 justify-between items-center">
-              <label className=" font-medium">Doctor</label>
-              <input
-                type="text"
-                placeholder="doctor"
-                className="p-2 rounded-md w-72 bg-transparent border border-gray-600 dark:placeholder:text-white placeholder:text-black"
-              />
-            </div>
-
-            <div className="flex col-span-2 gap-5 justify-between items-center ">
-              <label className=" font-medium">Status</label>
-              <input
-                type="text"
-                placeholder="Status"
-                className="p-2 rounded-md w-72 bg-transparent border border-gray-600 dark:placeholder:text-white placeholder:text-black"
-              />
-            </div>
-          </form>
-
-          {/* Buttons */}
-          <div className="w-full flex justify-end items-center gap-4 mt-4 mr-6 text-sm font-normal">
-            <p
-              onClick={onclose}
-              className="cursor-pointer border border-select_layout-dark text-select_layout-dark px-6 py-1.5 rounded-sm"
-            >
-              Cancel
-            </p>
-            <p className="cursor-pointer bg-select_layout-dark dark:text-black text-white px-6 py-1.5 rounded-sm">
-              Save
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+import { API } from "../../../Constant";
 
 const Appointment_Tab = () => {
-  const { searchTerm } = useSearch();
+  const itemsPerPage = 10;
+
+  const [appointments, setAppointments] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const [searchTerm, setSearchTerm] = useState(""); // To implement controlled SearchBar
+  const [filterParams, setFilterParams] = useState({
+    fromdate: "",
+    todate: "",
+  });
+
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+
   const [createAppointment, setCreateAppointment] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
+
   const [viewCalendar, setViewCalendar] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState(null);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isview, setIsview] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState(null);
 
-  const itemsPerPage = 10;
+  const [isView, setIsView] = useState(false);
 
-  useEffect(() => {
-    if (!searchTerm) {
-      setFilteredData(AppointmentData);
-      return;
+  // Fetch appointments from API with pagination, search, and date filters
+  const fetchAppointments = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/appointment/getallappointments`, {
+        params: {
+          page: currentPage,
+          limit: itemsPerPage,
+          search: searchTerm,
+          fromdate: filterParams.fromdate,
+          todate: filterParams.todate,
+        },
+      });
+
+      setAppointments(res.data.data || []);
+      setTotalPages(res.data.totalPages || 0);
+    } catch (error) {
+      toast.error("Failed to fetch appointments");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const lowerSearchTerm = searchTerm.toLowerCase();
-
-    const filtered = AppointmentData.filter((item) =>
-      Object.values(item).some((value) => {
-        const lowerValue = value.toString().toLowerCase();
-        return (
-          lowerValue === lowerSearchTerm ||
-          (!isNaN(searchTerm) && lowerValue.includes(searchTerm)) ||
-          lowerValue.startsWith(lowerSearchTerm)
-        );
-      })
-    );
-
-    setFilteredData(filtered);
-    setCurrentPage(1);
-  }, [searchTerm]);
-
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedData = filteredData.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
+  // Fetch appointments whenever pagination, search term or filters change
+  useEffect(() => {
+    fetchAppointments();
+    // eslint-disable-next-line
+  }, [currentPage, searchTerm, filterParams, createAppointment]);
 
   const handleEdit = (appointment) => {
     setSelectedAppointment(appointment);
     setEditModalOpen(true);
   };
 
-  const handleSave = (updatedData) => {
-    const updatedList = filteredData.map((item) =>
-      item.tokenNo === updatedData.tokenNo ? updatedData : item
-    );
-    setFilteredData(updatedList);
-    setEditModalOpen(false);
-  };
-
   return (
     <>
       {!viewCalendar && (
         <div className="mt-16">
-          <div className="relative ">
+          <div className="relative">
             <div className="font-layout-font absolute -top-13 right-0 flex justify-end items-center gap-2 pb-2">
               <p
                 onClick={() => setCreateAppointment(true)}
@@ -186,7 +103,11 @@ const Appointment_Tab = () => {
                 <TbFileExport />
                 Export
               </p>
-              <Filter />
+              <Filter
+                filterParams={filterParams}
+                setFilterParams={setFilterParams}
+              />
+              {/* Add search bar component here with searchTerm and setSearchTerm */}
             </div>
           </div>
 
@@ -214,45 +135,45 @@ const Appointment_Tab = () => {
               </thead>
 
               <tbody className="dark:bg-layout-dark bg-layout-light rounded-2xl dark:text-gray-200 text-gray-600 cursor-default">
-                {paginatedData.length > 0 ? (
-                  paginatedData.map((data, index) => (
+                {appointments.length > 0 ? (
+                  appointments.map((data, index) => (
                     <tr
                       key={index}
                       className="border-b-2 dark:border-overall_bg-dark border-overall_bg-light text-center"
                     >
-                      <td className="rounded-l-lg">{startIndex + index + 1}</td>
-                      <td>{data.tokenNo}</td>
+                      <td className="rounded-l-lg">{index + 1}</td>
+                      <td>{data.token_id}</td>
                       <td>{data.name}</td>
-                      <td>{data.phoneNumber}</td>
+                      <td>{data.phone}</td>
                       <td>{data.date}</td>
                       <td>{data.slot}</td>
                       <td
-                        className={`first-letter:uppercase
-                               ${
-                                 data.status === "reschedule"
-                                   ? " text-blue-600"
-                                   : data.status === "completed"
-                                   ? " text-green-600"
-                                   : data.status === "cancelled"
-                                   ? " text-red-600"
-                                   : " text-gray-600"
-                               }`}
+                        className={`first-letter:uppercase ${
+                          data.status === "pending"
+                            ? "text-yellow-500"
+                            : data.status === "confirmed"
+                            ? "text-green-600"
+                            : data.status === "cancelled"
+                            ? "text-red-600"
+                            : data.status === "completed"
+                            ? "text-purple-500"
+                            : "text-gray-600"
+                        }`}
                       >
                         {data.status}
                       </td>
                       <td className="space-x-2 p-2.5 rounded-r-lg">
                         <button
-                          className=" cursor-pointer bg-blue-200 p-1.5 rounded-sm"
+                          className="cursor-pointer bg-blue-200 p-1.5 rounded-sm"
                           onClick={() => handleEdit(data)}
                         >
                           <Pencil size={16} className="text-blue-600" />
                         </button>
                         <button
-                          className=" cursor-pointer bg-green-200 p-1.5 rounded-sm"
+                          className="cursor-pointer bg-green-200 p-1.5 rounded-sm"
                           onClick={() => {
-                            // setSelectedStatus(data.status);
-                            // setIsModalOpen(true);
-                            setIsview(true)
+                            setSelectedStatus(data.status);
+                            setIsView(true);
                           }}
                         >
                           <LuEye size={16} className="text-green-600" />
@@ -278,24 +199,33 @@ const Appointment_Tab = () => {
             onPageChange={setCurrentPage}
           />
 
-          {editModalOpen && (
-            <EditAppointmentModal onclose={() => setEditModalOpen(false)} />
+          {editModalOpen && selectedAppointment && (
+            <EditAppointment
+              onclose={() => setEditModalOpen(false)}
+              appointment={selectedAppointment}
+              onSuccess={fetchAppointments}
+            />
           )}
+
           {createAppointment && (
-            <CreateAppointment onclose={() => setCreateAppointment(false)} />
+            <CreateAppointment
+              onclose={() => setCreateAppointment(false)}
+              refresh={fetchAppointments}
+            />
           )}
 
           {isModalOpen && selectedStatus === "completed" && (
             <Completed onclose={() => setIsModalOpen(false)} />
           )}
+
           {isModalOpen && selectedStatus === "reschedule" && (
             <Reschedule onclose={() => setIsModalOpen(false)} />
           )}
-          {isview && (<>
-           <ViewAppoinment onclose={() => setIsview(false)} />
-          </>)}
+
+          {isView && <ViewAppoinment onclose={() => setIsView(false)} />}
         </div>
       )}
+
       {viewCalendar && <Calendar onclose={() => setViewCalendar(false)} />}
     </>
   );

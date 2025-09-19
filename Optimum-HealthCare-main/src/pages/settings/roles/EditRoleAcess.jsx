@@ -1,24 +1,30 @@
-import React, { useState } from "react";
-import NavBar from "../../../component/NavBar";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
-const EditRoleAccess = () => {
+import axios from "axios";
+import Title from "../../../component/Title";
+import { API } from "../../../Constant";
+
+
+const EditRoleAcess = ({ item }) => {
   const [roleName, setRoleName] = useState("");
+  const [createdBy, setCreatedBy] = useState("System");
   const [selectedSettings, setSelectedSettings] = useState({});
   const [permissions, setPermissions] = useState({});
   const navigate = useNavigate();
+  const location = useLocation();
+  const { roleId} = location.state || {};
+  
 
   const settingsOptions = [
     "Dashboard",
-    "Enquiry Management",
-    "Shipment Management",
-    "Customer Management",
-    "Communications",
-    "Report & Analytics",
-    "Invoice & Payments",
-    "Terms Of Service",
-    "Privacy Policy",
-    "Subscription",
+    "Tasks",
+    "Leads",
+    "Association",
+    "Appointments",
+    "Finance",
+    "HR",
+    "Reports",
     "Settings",
   ];
 
@@ -30,8 +36,35 @@ const EditRoleAccess = () => {
     "Delete",
     "Download",
   ];
+  useEffect(() => {
+    if (roleId) {
+      fetchExistingRoles();
+    }
+  }, [roleId]);
 
-  // Toggle Settings Checkbox
+  const fetchExistingRoles = async () => {
+    try {
+      const response = await axios.get(
+        `${API}/role/getbyroleid?roleId=${roleId}`
+      );
+
+      setRoleName(response.data.data.role_name); // Set the existing role name
+      const accessLevelsArr = response.data.data.accessLevels || [];
+      const perms = {};
+      const selected = {};
+      accessLevelsArr.forEach((item) => {
+        selected[item.feature] = true;
+        perms[item.feature] = item.permissions;
+      });
+
+
+      setSelectedSettings(selected);
+      setPermissions(perms);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const toggleSetting = (setting) => {
     setSelectedSettings((prev) => ({
       ...prev,
@@ -54,21 +87,17 @@ const EditRoleAccess = () => {
       let updatedPermissions = prev[setting] || [];
 
       if (permission === "All") {
-        // If "All" is checked, select all permissions
         updatedPermissions = checked ? permissionOptions.slice(1) : [];
       } else {
-        // Add or remove individual permission
         updatedPermissions = checked
           ? [...updatedPermissions, permission]
           : updatedPermissions.filter((p) => p !== permission);
 
-        // If "All" was checked and one is unchecked, uncheck "All"
         if (!checked) {
           updatedPermissions = updatedPermissions.filter((p) => p !== "All");
         }
       }
 
-      // If all individual permissions are checked, check "All" again
       if (updatedPermissions.length === permissionOptions.length - 1) {
         updatedPermissions = ["All", ...updatedPermissions];
       }
@@ -77,57 +106,101 @@ const EditRoleAccess = () => {
     });
   };
 
-  const handleSave = () => {
-    navigate("../");
+  const handleSave = async () => {
+    const accessLevels = Object.entries(permissions).map(
+      ([feature, perms]) => ({
+        feature,
+        permissions: perms,
+      })
+    );
+    const roleAccessLevel = {
+      role_name: roleName,
+      accessLevels,
+      status: "active",
+    };
+
+    try {
+      const response = await axios.put(
+        `${API}/role/updatebyroleid?roleId=${roleId}`,
+        roleAccessLevel
+      );
+      if (response.status === 200) {
+        navigate("/setting");
+        window.location.reload();
+        toast.success("Role Updated Successfully");
+      }
+    } catch (error) {
+      console.log(error);
+    }
+
+    // console.log("Saved role:", {
+    //   roleName,
+    //   createdBy,
+    //   permissions,
+    // });
   };
 
   return (
     <>
-      <NavBar title="Settings" pagetitle="Role Access" />
-      <div className="flex justify-between items-center p-3 rounded-md mb-2">
-        <div className="flex items-center gap-3">
-          <span className="text-base font-semibold dark:text-white">Role name:</span>
-          <input
-            type="text"
-            value={roleName}
-            onChange={(e) => setRoleName(e.target.value)}
-            className="dark:bg-layout-dark bg-layout-light text-select_layout-dark text-base px-3 py-1.5 rounded-md outline-none"
-          />
-        </div>
+      <div className="flex justify-between items-center  mb-2">
+        <Title
+          title="Settings"
+          sub_title="Role Access"
+          page_title="Edit role Access"
+        />
         <div className="flex gap-3">
-          <button
+          <p
             onClick={() => navigate("/setting")}
-            className="cursor-pointer border border-select_layout-dark text-select_layout-dark px-8 py-2 rounded-sm"
+            className="cursor-pointer  border dark:border-white dark:text-white border-darkest-blue px-8 py-2 rounded-sm"
           >
             Cancel
-          </button>
-          <p onClick={handleSave} className="bg-select_layout-dark text-white px-8 py-2 rounded-sm">
+          </p>
+          <p
+            onClick={handleSave}
+            className="bg-select_layout-dark dark:bg-select_layout-light text-white px-8 py-2 rounded-sm"
+          >
             Save
           </p>
         </div>
       </div>
-      <div className="dark:bg-layout-dark bg-layout-light dark:text-white p-6 mx-3 rounded-lg shadow-lg ">
-        <div className="grid grid-cols-3 ">
-          {/* Settings Column */}
-          <div className="border-r-2  dark:border-gray-100 p-3">
+      <div className="flex items-center  gap-10 mb-4">
+        <span className="font-semibold dark:text-white text-black ">Role name</span>
+        <input
+          type="text"
+          value={roleName}
+          onChange={(e) => setRoleName(e.target.value)}
+          className="  px-3 py-1.5 rounded-md outline-none dark:bg-layout-dark bg-white text-black dark:text-white"
+        />
+        <span className="font-semibold dark:text-white text-black  ">Created By</span>
+        <input
+          type="text"
+          value={createdBy}
+          onChange={(e) => setCreatedBy(e.target.value)}
+          className="  px-3 py-1.5 rounded-md outline-none dark:bg-layout-dark dark:text-white bg-white text-black "
+        />
+      </div>
+
+      <div className="dark:bg-layout-dark dark:text-white bg-white p-10  rounded-xl  ">
+        <div className="grid grid-cols-3 gap-2 ">
+          <div className="border-r-2 p-3 h-80">
             <h2 className="text-lg font-medium mb-4 w-1/2 text-center">
               Settings
             </h2>
             {settingsOptions.map((setting) => (
-              <div key={setting} className="flex items-center gap-4 mb-3">
-                <label className="flex items-center gap-2 cursor-pointer">
+              <div key={setting} className="flex items-center  mb-3">
+                <label className="flex items-center gap-2  cursor-pointer">
                   <label className="relative flex items-center cursor-pointer">
                     <input
                       type="checkbox"
                       checked={!!selectedSettings[setting]}
                       onChange={() => toggleSetting(setting)}
-                      className="appearance-none w-5 h-5 border-2 dark:border-gray-100 rounded-md checked:bg-select_layout-dark checked:border-transparent focus:outline-none transition-all duration-200"
+                      className="appearance-none w-5 h-5 border-2 dark:border-white border-darkest-blue rounded-md checked:bg-select_layout-dark  checked:border-transparent focus:outline-none transition-all duration-200"
                     />
                     {/* Custom Checkmark */}
                     <span className="absolute w-5 h-5 flex justify-center items-center pointer-events-none">
                       {selectedSettings[setting] && (
                         <svg
-                          className="w-10 h-4 text-black"
+                          className="w-10 h-4 dark:text-black text-white"
                           fill="none"
                           stroke="currentColor"
                           strokeWidth="3"
@@ -149,9 +222,8 @@ const EditRoleAccess = () => {
             ))}
           </div>
 
-          {/* Permissions Column */}
           <div className="p-4">
-            <h2 className="text-lg font-medium mb-2">Permissions</h2>
+            <h2 className="text-lg font-medium mb-3">Permissions</h2>
             {settingsOptions.map((setting) => (
               <div key={setting} className=" flex items-center">
                 {selectedSettings[setting] ? (
@@ -174,13 +246,13 @@ const EditRoleAccess = () => {
                                 e.target.checked
                               )
                             }
-                            className="appearance-none w-5 h-5 border-2 dark:border-gray-100 rounded-md checked:bg-select_layout-dark checked:border-transparent focus:outline-none transition-all duration-200"
+                            className="appearance-none w-5 h-5 border-2 dark:border-white border-darkest-blue rounded-md checked:bg-select_layout-dark checked:border-transparent focus:outline-none transition-all duration-200"
                           />
                           {/* Custom Checkmark */}
                           <span className="absolute w-5 h-5 flex justify-center items-center pointer-events-none">
                             {permissions[setting]?.includes(perm) && (
                               <svg
-                                className="w-10 h-4 text-black"
+                                className="w-10 h-4 dark:text-black text-white"
                                 fill="none"
                                 stroke="currentColor"
                                 strokeWidth="3"
@@ -211,4 +283,4 @@ const EditRoleAccess = () => {
   );
 };
 
-export default EditRoleAccess;
+export default EditRoleAcess;

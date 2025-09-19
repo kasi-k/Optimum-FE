@@ -3,31 +3,75 @@ import NavBar from "../../component/NavBar";
 import { AlertTriangle, File } from "lucide-react";
 import { HiArrowsUpDown } from "react-icons/hi2";
 import AddComments from "./AddComments";
+import axios from "axios";
+import { API, formatDate } from "../../Constant";
+import { useLocation, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const ViewTasks = () => {
   const [comments, setComments] = useState(false);
+  const location = useLocation();
+  const taskData = location.state?.task;
+  const navigate = useNavigate();
+
+  const handleMarkComplete = async (taskData) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to mark this task as complete?"
+    );
+    if (!confirmed) {
+      toast.info("Task completion cancelled");
+      return; 
+    }
+
+    try {
+      await axios.patch(`${API}/task/updatetask/${taskData._id}/status`, {
+        status: "completed",
+      });
+      try {
+        navigate("..");
+      } catch (err) {
+        console.error("Navigation or fetchTasks error:", err);
+      }
+      toast.success("Task marked as complete");
+    } catch (error) {
+      console.error(error.response?.data?.message || "Failed to update status");
+    }
+  };
+
   return (
     <div>
       <NavBar title="tasks" pagetitle="View Tasks" />
       <div className="flex justify-end">
-        <p className="cursor-pointer flex items-center dark:text-white gap-2 bg-select_layout-dark px-4 py-2 text-sm rounded-md">
+        <button
+          onClick={() => handleMarkComplete(taskData)}
+          className="cursor-pointer flex items-center dark:text-white gap-2 bg-select_layout-dark px-4 py-2 text-sm rounded-md"
+        >
           <div className="relative w-6 h-6">
             <File className="absolute  w-6 h-6" />
             <AlertTriangle className="absolute left-1.5 top-2  w-3 h-3" />
           </div>
-          Mark as complete
-        </p>
+          <span> Mark as complete</span>
+        </button>
       </div>
       <div className="grid md:grid-cols-2 grid-cols-1 gap-3 my-3 dark:text-white text-black">
         <div className="bg-layout-light dark:bg-layout-dark p-4 rounded-md ">
           <p className="text-2xl text-center font-bold mb-3">Title</p>
 
           {[
-            { name: "Task", value: "task" },
-            { name: "Start Date", value: "12.01.2005" },
-            { name: "Due Date", value: "12.01.2005" },
-            { name: "Assigned To", value: "Priya" },
-            { name: "Note", value: "task" },
+            { name: "Task", value: taskData.task_title || "N/A" },
+
+            {
+              name: "Start Date",
+              value: formatDate(taskData?.start_date) || "N/A",
+            },
+            {
+              name: "Due Date",
+              value: formatDate(taskData?.due_date) || "N/A",
+            },
+            { name: "Status", value: taskData?.status || "N/A" },
+
+            { name: "Assigned To", value: taskData?.assigned_to || "N/A" },
+            { name: "Note", value: taskData?.note || "N/A" },
           ].map((heading, index) => (
             <div
               key={index}
@@ -38,23 +82,54 @@ const ViewTasks = () => {
             </div>
           ))}
         </div>
-        <div className="bg-layout-light dark:bg-layout-dark p-4 rounded-md ">
+
+        <div className="bg-layout-light dark:bg-layout-dark p-4 rounded-md">
           <p className="text-2xl text-center font-bold mb-3">Attachments</p>
 
-          {[{ name: "File", value: "file" }].map((heading, index) => (
-            <div
-              key={index}
-              className="grid grid-cols-2 text-xs space-y-1 px-3 "
-            >
-              <p>{heading.name}</p>
-              <p className="text-end text-gray-500">{heading.value}</p>
-            </div>
-          ))}
+          {taskData?.attachments && taskData.attachments.length > 0 ? (
+            taskData.attachments.map((file, index) => {
+              const fullUrl = `${API}${file.filePath}`;
+              console.log(file.filePath);
+
+              return (
+                <div
+                  key={index}
+                  className="grid grid-cols-2 text-xs space-y-1 px-3"
+                >
+                  <p>File {index + 1}</p>
+                  <p className="text-end ">
+                    <a
+                      href={fullUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-500 underline hover:text-blue-700"
+                    >
+                      View
+                    </a>
+                    {/* <a
+                      href={fullUrl}
+                      download={file.fileName}
+                      className="mx-4 text-green-500 underline hover:text-green-700"
+                    >
+                      Download
+                    </a> */}
+                  </p>
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-center text-gray-500">No Attachments</p>
+          )}
         </div>
       </div>
       <div className=" flex justify-between mt-5 items-center">
         <p className="text-lg font-bold text-black dark:text-white">Comments</p>
-        <button onClick={()=>{setComments(true)}} className="cursor-pointer flex items-center dark:text-white gap-2 bg-layout-light dark:bg-layout-dark w-fit px-4 py-2 text-sm rounded-md">
+        <button
+          onClick={() => {
+            setComments(true);
+          }}
+          className="cursor-pointer flex items-center dark:text-white gap-2 bg-layout-light dark:bg-layout-dark w-fit px-4 py-2 text-sm rounded-md"
+        >
           <div className="relative w-6 h-6">
             <File className="absolute  w-6 h-6" />
             <AlertTriangle className="absolute left-1.5 top-2  w-3 h-3" />
@@ -102,7 +177,7 @@ const ViewTasks = () => {
           </tbody>
         </table>
       </div>
-      {comments && (<AddComments  onclose={() => setComments(false)}/>)}
+      {comments && <AddComments onclose={() => setComments(false)} />}
     </div>
   );
 };
