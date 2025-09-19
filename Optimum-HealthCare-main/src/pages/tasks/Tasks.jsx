@@ -158,10 +158,10 @@ const Tasks = () => {
                     </button>{" "}
                     <button
                       className="cursor-pointer bg-blue-200 w-fit rounded-sm py-1.5 px-1.5"
-                      onClick={() => {
-                        setSelectedTask(data);
-                        setEdittasks(true);
-                      }}
+                      // onClick={() => {
+                      //   setSelectedTask(data);
+                      //   setEdittasks(true);
+                      // }}
                     >
                       <Pencil size={16} className="text-blue-600" />
                     </button>{" "}

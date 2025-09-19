@@ -16,7 +16,7 @@ import Reschedule from "./Reschedule";
 import ViewAppoinment from "./ViewAppoinment";
 import EditAppointment from "./EditAppointment"; // assuming this exists
 
-import { API } from "../../../Constant";
+import { API, formatDate } from "../../../Constant";
 
 const Appointment_Tab = () => {
   const itemsPerPage = 10;
@@ -145,7 +145,7 @@ const Appointment_Tab = () => {
                       <td>{data.token_id}</td>
                       <td>{data.name}</td>
                       <td>{data.phone}</td>
-                      <td>{data.date}</td>
+                      <td>{formatDate(data.date)}</td>
                       <td>{data.slot}</td>
                       <td
                         className={`first-letter:uppercase ${
