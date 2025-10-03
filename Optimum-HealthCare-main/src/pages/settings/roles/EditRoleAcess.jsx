@@ -114,7 +114,7 @@ const EditRoleAcess = ({ item }) => {
       })
     );
     const roleAccessLevel = {
-      role_name: roleName,
+      role_name: roleName.toLowerCase(),
       accessLevels,
       status: "active",
     };

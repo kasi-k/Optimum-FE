@@ -2,45 +2,52 @@ import React, { useEffect, useState } from "react";
 import { HiArrowsUpDown } from "react-icons/hi2";
 import Pagination from "../../../component/Pagination";
 import { LuEye } from "react-icons/lu";
-import { TbBrandCampaignmonitor } from "react-icons/tb";
+import { TbBrandCampaignmonitor, TbFileExport } from "react-icons/tb";
 import Filter from "../../../component/Filter";
-import { TbFileExport } from "react-icons/tb";
-import { useSearch } from "../../../component/SearchBar";
-import { campaignData } from "../../../component/Data";
 import CreateCampaign from "./CreateCampaign";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { toast } from "react-toastify";
+import { API, formatDate } from "../../../Constant";
+import { useSearch } from "../../../component/SearchBar";
 
 const Campaign = () => {
   const { searchTerm } = useSearch();
+  const [campaigns, setCampaigns] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [createCampaign,  setCreateCampaign] = useState(false)
-  const navigate = useNavigate()
+  const [createCampaign, setCreateCampaign] = useState(false);
+  const [filterParams, setFilterParams] = useState({
+    fromDate: "",
+    toDate: "",
+  });
+  const navigate = useNavigate();
 
   const itemsPerPage = 10;
-  useEffect(() => {
-    if (!searchTerm) {
-      setFilteredData(campaignData);
-      return;
+
+  const fetchCampaigns = async () => {
+    try {
+      const res = await axios.get(`${API}/campaign/allcampaigns`, {
+        params: {
+          page: currentPage,
+          limit: itemsPerPage,
+          search: searchTerm,
+          fromDate: filterParams.fromDate,
+          toDate: filterParams.toDate,
+        },
+      });
+      setCampaigns(res.data.data || []);
+      setFilteredData(res.data.data || []);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Failed to fetch campaigns");
     }
+  };
 
-    const lowerSearchTerm = searchTerm.toString().toLowerCase();
-
-    const filtered = campaignData.filter((item) =>
-      Object.values(item).some((value) => {
-        const lowerValue = value.toString().toLowerCase();
-
-        if (lowerValue === lowerSearchTerm) return true;
-
-        if (!isNaN(searchTerm) && lowerValue.includes(searchTerm)) return true;
-
-        return lowerValue.startsWith(lowerSearchTerm);
-      })
-    );
-
-    setFilteredData(filtered);
-    setCurrentPage(1);
-  }, [searchTerm]);
+  useEffect(() => {
+    fetchCampaigns();
+    // eslint-disable-next-line
+  }, [currentPage, searchTerm, filterParams, createCampaign]);
 
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedData = filteredData.slice(
@@ -52,7 +59,10 @@ const Campaign = () => {
     <>
       <div className="relative">
         <div className="font-layout-font absolute -top-13 right-0 flex justify-end items-center gap-2 pb-2">
-          <p onClick={() =>setCreateCampaign(true)} className="cursor-pointer flex items-center dark:text-white gap-2 bg-select_layout-dark px-4 py-2 text-sm rounded-md">
+          <p
+            onClick={() => setCreateCampaign(true)}
+            className="cursor-pointer flex items-center dark:text-white gap-2 bg-select_layout-dark px-4 py-2 text-sm rounded-md"
+          >
             <TbBrandCampaignmonitor size={18} />
             Create Campaign
           </p>
@@ -60,14 +70,18 @@ const Campaign = () => {
             <TbFileExport />
             Export
           </p>
-          <Filter />
+          <Filter
+            filterParams={filterParams}
+            setFilterParams={setFilterParams}
+          />
         </div>
       </div>
+
       <div className="font-layout-font overflow-auto no-scrollbar">
-        <table className=" w-full xl:h-fit h-[703px]  dark:text-white whitespace-nowrap">
+        <table className="w-full xl:h-fit h-[703px] dark:text-white whitespace-nowrap">
           <thead>
-            <tr className=" font-semibold text-sm dark:bg-layout-dark bg-layout-light border-b-2 dark:border-overall_bg-dark border-overall_bg-light ">
-              <th className=" p-3.5 rounded-l-lg">S.no</th>
+            <tr className="font-semibold text-sm dark:bg-layout-dark bg-layout-light border-b-2 dark:border-overall_bg-dark border-overall_bg-light">
+              <th className="p-3.5 rounded-l-lg">S.no</th>
               {[
                 "Campaign ID",
                 "Channel",
@@ -86,27 +100,38 @@ const Campaign = () => {
               <th className="pr-2 rounded-r-lg">Action</th>
             </tr>
           </thead>
-          <tbody className="dark:bg-layout-dark bg-layout-light rounded-2xl dark:text-gray-200 text-gray-600   cursor-default">
+
+          <tbody className="dark:bg-layout-dark bg-layout-light rounded-2xl dark:text-gray-200 text-gray-600 cursor-default">
             {paginatedData.length > 0 ? (
               paginatedData.map((data, index) => (
                 <tr
-                  className="border-b-2 dark:border-overall_bg-dark border-overall_bg-light text-center "
+                  className="border-b-2 dark:border-overall_bg-dark border-overall_bg-light text-center"
                   key={index}
                 >
-                  <td className="rounded-l-lg ">
+                  <td className="rounded-l-lg">
                     {(currentPage - 1) * itemsPerPage + index + 1}
                   </td>
-                  <td>{data["Campaign ID"]}</td>
-                  <td>{data["Channel"]}</td>
-                  <td>{data["Start Date"]}</td>
-                  <td>{data["End Date"]}</td>
-                  <td>{data["Budget"]}</td>
-                  <td>{data["Leads"]}</td>
-                  <td>{data["CPL"]}</td>
+                  <td>{data.campaign_id}</td>
+                  <td>{data.channel}</td>
+                  <td>{formatDate(data.startDate)}</td>
+                  <td>{formatDate(data.endDate)}</td>
+                  <td>{data.budget}</td>
+                  <td>{data.leads ? data.leads.length : 0}</td>
+                  <td>
+                    {data.leads && data.leads.length > 0
+                      ? (data.budget / data.leads.length).toFixed(2)
+                      : "0.00"}
+                  </td>
+
                   <td className="pl-4 p-2.5 rounded-r-lg">
-                    {" "}
-                    <p onClick={ () =>navigate("viewcampaign")} className="cursor-pointer bg-[#BAFFBA] text-green-600 w-fit rounded-sm py-1.5 px-1.5">
-                      {" "}
+                    <p
+                      onClick={() =>
+                        navigate(`viewcampaign`, {
+                          state: { id: data._id, campid: data.campaign_id },
+                        })
+                      }
+                      className="cursor-pointer bg-[#BAFFBA] text-green-600 w-fit rounded-sm py-1.5 px-1.5"
+                    >
                       <LuEye size={16} />
                     </p>
                   </td>
@@ -129,7 +154,10 @@ const Campaign = () => {
         currentPage={currentPage}
         onPageChange={setCurrentPage}
       />
-      {createCampaign && <CreateCampaign onclose={()=>{setCreateCampaign(false)}}/>}
+
+      {createCampaign && (
+        <CreateCampaign onclose={() => setCreateCampaign(false)} />
+      )}
     </>
   );
 };

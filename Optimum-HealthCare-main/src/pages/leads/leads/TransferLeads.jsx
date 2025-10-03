@@ -3,6 +3,9 @@ import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { IoClose } from "react-icons/io5";
+import axios from "axios";
+import { API } from "../../../Constant";
+import { toast } from "react-toastify";
 
 // Validation schema
 const schema = yup.object().shape({
@@ -10,10 +13,16 @@ const schema = yup.object().shape({
     .array()
     .min(1, "At least one lead must be selected.")
     .required("Select at least one lead."),
-  transferTo: yup.string().required("Please select a BD name."),
+  bdname: yup.string().required("Please select a BD name."),
 });
 
-const TransferLeads = ({ onclose, bdNames, selectedLeads, onSave }) => {
+const TransferLeads = ({
+  onclose,
+  bdNames,
+  selectedLeads,
+  onSave,
+  fetchLeads,
+}) => {
   const {
     register,
     handleSubmit,
@@ -25,7 +34,7 @@ const TransferLeads = ({ onclose, bdNames, selectedLeads, onSave }) => {
     resolver: yupResolver(schema),
     defaultValues: {
       selectedLeadIds: selectedLeads.map((lead) => lead.leadId),
-      transferTo: "",
+      bdname: "",
     },
   });
 
@@ -39,8 +48,21 @@ const TransferLeads = ({ onclose, bdNames, selectedLeads, onSave }) => {
     setValue("selectedLeadIds", updated);
   };
 
-  const onSubmit = (data) => {
-    onSave(data);
+  const onSubmit = async (data) => {
+    try {
+      const payload = {
+        leadIds: selectedLeads.map((lead) => lead.lead_id), // array of lead IDs
+        bdname: data.bdname, // selected BD name
+      };
+
+      const response = await axios.put(`${API}/lead/transferleads`, payload);
+      toast.success(response.data.message || "Leads transferred successfully");
+      fetchLeads();
+      onSave(payload); // call parent handler if needed
+      onclose(); // close modal
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to transfer leads");
+    }
   };
 
   return (
@@ -81,13 +103,15 @@ const TransferLeads = ({ onclose, bdNames, selectedLeads, onSave }) => {
               </div>
             </div>
             {errors.selectedLeadIds && (
-              <p className="text-red-500 text-sm col-span-2">{errors.selectedLeadIds.message}</p>
+              <p className="text-red-500 text-sm col-span-2">
+                {errors.selectedLeadIds.message}
+              </p>
             )}
 
             <div className="flex col-span-2 gap-5 justify-between items-center">
               <label className="">Transfer to</label>
               <Controller
-                name="transferTo"
+                name="bdname"
                 control={control}
                 render={({ field }) => (
                   <select
@@ -97,8 +121,8 @@ const TransferLeads = ({ onclose, bdNames, selectedLeads, onSave }) => {
                     <option value="" className="text-black">
                       Select BD Name
                     </option>
-                    {bdNames.map((name, index) => (
-                      <option className="text-black" key={index} value={name}>
+                    {bdNames.map((name) => (
+                      <option className="text-black" key={name} value={name}>
                         {name}
                       </option>
                     ))}
@@ -107,7 +131,9 @@ const TransferLeads = ({ onclose, bdNames, selectedLeads, onSave }) => {
               />
             </div>
             {errors.transferTo && (
-              <p className="text-red-500 text-sm col-span-2">{errors.transferTo.message}</p>
+              <p className="text-red-500 text-sm col-span-2">
+                {errors.transferTo.message}
+              </p>
             )}
 
             <div className="w-full flex justify-end items-center gap-4 mt-4 mr-6 text-sm font-normal col-span-2">

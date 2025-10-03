@@ -1,8 +1,8 @@
 import { React, useState } from "react";
 import { IoClose } from "react-icons/io5";
-import Delete from "../assets/images/Delete.png"
+import Delete from "../assets/images/Delete.png";
 
-const DeleteModal = ({ title, onclose, Children }) => {
+const DeleteModal = ({ title, onclose, Children ,onConfirm}) => {
   return (
     <>
       <div className=" font-roboto-flex fixed inset-0 flex justify-center  items-center backdrop-blur-sm drop-shadow-lg">
@@ -29,7 +29,12 @@ const DeleteModal = ({ title, onclose, Children }) => {
             >
               Cancel
             </button>
-            <button className=" cursor-pointer text-black bg-red-600 px-8 py-1.5 rounded-sm ">
+            <button
+              onClick={() => {
+                onConfirm && onConfirm(); // ✅ call delete function
+              }}
+              className=" cursor-pointer text-black bg-red-600 px-8 py-1.5 rounded-sm "
+            >
               Delete
             </button>
           </div>

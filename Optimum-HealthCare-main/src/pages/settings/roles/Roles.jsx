@@ -124,7 +124,7 @@ const Roles = () => {
                 >
                   <td className="rounded-l-lg p-2.5">{index + 1}</td>
                   <td>{role.name}</td>
-                  <td>{role.role_name}</td>
+                  <td className="uppercase">{role.role_name}</td>
                   <td>{role.created_by_user}</td>
                   <td className="space-x-2">
                     <button

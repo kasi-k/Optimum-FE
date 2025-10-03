@@ -88,7 +88,7 @@ const AddRoles = () => {
     );
 
     const roleAccessLevel = {
-      role_name: roleName,
+      role_name: roleName.toLowerCase(),
       accessLevels,
       created_by_user: createdBy,
       status: "active",
