@@ -1,5 +1,5 @@
-export const API = "http://localhost:5001"
-// export const API = "https://optimum-be.onrender.com"
+// export const API = "http://localhost:5001"
+export const API = "https://optimum-be.onrender.com"
 
 export const formatDate = (dateString) => {
   if (!dateString) return "-";

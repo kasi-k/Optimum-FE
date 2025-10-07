@@ -74,11 +74,11 @@ export default function MultiSelect({ options, value, onChange, placeholder }) {
       {/* Dropdown menu */}
       {open && availableOptions.length > 0 && (
         <div className="absolute mt-1 w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-40 overflow-y-auto z-50">
-          {availableOptions.map((option) => {
+          {availableOptions.map((option,idx) => {
             const { value: val, label } = normalizeOption(option);
             return (
               <div
-                key={val}
+                key={`${val}-${idx}`}
                 onClick={() => toggleSelect(option)}
                 className="px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-black dark:text-white"
               >
