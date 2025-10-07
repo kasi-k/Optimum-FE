@@ -20,7 +20,7 @@ const ViewTasks = () => {
     );
     if (!confirmed) {
       toast.info("Task completion cancelled");
-      return; 
+      return;
     }
 
     try {
@@ -88,31 +88,23 @@ const ViewTasks = () => {
 
           {taskData?.attachments && taskData.attachments.length > 0 ? (
             taskData.attachments.map((file, index) => {
-              const fullUrl = `${API}${file.filePath}`;
-              console.log(file.filePath);
+              const fileUrl = file.filePath; // full URL to the file
 
               return (
                 <div
-                  key={index}
+                  key={file._id || index} // unique key if _id exists
                   className="grid grid-cols-2 text-xs space-y-1 px-3"
                 >
                   <p>File {index + 1}</p>
-                  <p className="text-end ">
+                  <p className="text-end">
                     <a
-                      href={fullUrl}
+                      href={fileUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-500 underline hover:text-blue-700"
                     >
                       View
                     </a>
-                    {/* <a
-                      href={fullUrl}
-                      download={file.fileName}
-                      className="mx-4 text-green-500 underline hover:text-green-700"
-                    >
-                      Download
-                    </a> */}
                   </p>
                 </div>
               );
