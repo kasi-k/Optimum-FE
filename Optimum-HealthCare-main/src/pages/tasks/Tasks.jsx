@@ -14,6 +14,7 @@ import EditTasks from "./EditTasks";
 import axios from "axios";
 import { API, formatDate } from "../../Constant";
 import { toast } from "react-toastify";
+import DeleteModal from "../../component/DeleteModal";
 
 const Tasks = () => {
   const [tasks, setTasks] = useState([]);
@@ -29,6 +30,8 @@ const Tasks = () => {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
+  const [deleteModal, setDeleteModal] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
 
   const itemsPerPage = 10;
   const navigate = useNavigate();
@@ -38,7 +41,6 @@ const Tasks = () => {
     completed: "font-bold text-green-700",
     incomplete: "font-bold text-red-700",
   };
-
 
   // ✅ Fetch Tasks from API
   const fetchTasks = async () => {
@@ -66,6 +68,17 @@ const Tasks = () => {
   useEffect(() => {
     fetchTasks();
   }, [currentPage, searchTerm, filterParams]);
+
+  // ✅ Delete hospital
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`${API}/task/deletetask/${id}`);
+      toast.success("Task deleted successfully");
+      fetchTasks();
+    } catch (err) {
+      toast.error("Failed to delete task");
+    }
+  };
 
   return (
     <>
@@ -148,24 +161,32 @@ const Tasks = () => {
                   <td className="pl-4 p-2.5 rounded-r-lg">
                     <button
                       className="cursor-pointer bg-[#BAFFBA] text-green-600 w-fit rounded-sm py-1.5 px-1.5"
-                      onClick={() => navigate(`/tasks/viewtasks`,{
-                        state:{
-                          task:data
-                        }
-                      })}
+                      onClick={() =>
+                        navigate(`/tasks/viewtasks`, {
+                          state: {
+                            task: data,
+                          },
+                        })
+                      }
                     >
                       <LuEye size={16} />
                     </button>{" "}
-                    <button
+                    {/* <button
                       className="cursor-pointer bg-blue-200 w-fit rounded-sm py-1.5 px-1.5"
-                      // onClick={() => {
-                      //   setSelectedTask(data);
-                      //   setEdittasks(true);
-                      // }}
+                      onClick={() => {
+                        setSelectedTask(data);
+                        setEdittasks(true);
+                      }}
                     >
                       <Pencil size={16} className="text-blue-600" />
-                    </button>{" "}
-                    <button className="cursor-pointer bg-pink-200 text-red-500 w-fit rounded-sm py-1.5 px-1.5">
+                    </button>{" "} */}
+                    <button
+                      onClick={() => {
+                        setDeleteId(data._id);
+                        setDeleteModal(true);
+                      }}
+                      className="cursor-pointer bg-pink-200 text-red-500 w-fit rounded-sm py-1.5 px-1.5"
+                    >
                       <RiDeleteBinLine size={16} />
                     </button>
                   </td>
@@ -189,9 +210,21 @@ const Tasks = () => {
         onPageChange={setCurrentPage}
       />
 
-      {addTasks && <AddTasks onclose={() => setAddTasks(false)}  onSuccess={fetchTasks}/>}
+      {addTasks && (
+        <AddTasks onclose={() => setAddTasks(false)} onSuccess={fetchTasks} />
+      )}
       {edittasks && (
         <EditTasks task={selectedTask} onclose={() => setEdittasks(false)} />
+      )}
+       {deleteModal && (
+        <DeleteModal
+          title="task"
+          onclose={() => setDeleteModal(false)}
+          onConfirm={async () => {
+            await handleDelete(deleteId);
+            setDeleteModal(false);
+          }}
+        />
       )}
     </>
   );

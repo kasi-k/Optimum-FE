@@ -42,17 +42,20 @@ const ViewTasks = () => {
     <div>
       <NavBar title="tasks" pagetitle="View Tasks" />
       <div className="flex justify-end">
-        <button
-          onClick={() => handleMarkComplete(taskData)}
-          className="cursor-pointer flex items-center dark:text-white gap-2 bg-select_layout-dark px-4 py-2 text-sm rounded-md"
-        >
-          <div className="relative w-6 h-6">
-            <File className="absolute  w-6 h-6" />
-            <AlertTriangle className="absolute left-1.5 top-2  w-3 h-3" />
-          </div>
-          <span> Mark as complete</span>
-        </button>
+        {taskData?.status !== "completed" && (
+          <button
+            onClick={() => handleMarkComplete(taskData)}
+            className="cursor-pointer flex items-center dark:text-white gap-2 bg-select_layout-dark px-4 py-2 text-sm rounded-md"
+          >
+            <div className="relative w-6 h-6">
+              <File className="absolute  w-6 h-6" />
+              <AlertTriangle className="absolute left-1.5 top-2  w-3 h-3" />
+            </div>
+            <span> Mark as complete</span>
+          </button>
+        )}
       </div>
+
       <div className="grid md:grid-cols-2 grid-cols-1 gap-3 my-3 dark:text-white text-black">
         <div className="bg-layout-light dark:bg-layout-dark p-4 rounded-md ">
           <p className="text-2xl text-center font-bold mb-3">Title</p>
@@ -169,7 +172,7 @@ const ViewTasks = () => {
           </tbody>
         </table>
       </div>
-      {comments && <AddComments onclose={() => setComments(false)} />}
+      {/* {comments && <AddComments onclose={() => setComments(false)}  task={taskData}/>} */}
     </div>
   );
 };

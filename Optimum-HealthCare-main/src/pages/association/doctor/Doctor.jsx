@@ -1,42 +1,62 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import { HiArrowsUpDown } from "react-icons/hi2";
 import Pagination from "../../../component/Pagination";
 import { LuEye } from "react-icons/lu";
-import { Pencil } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import Filter from "../../../component/Filter";
 import { TbFileExport } from "react-icons/tb";
 import { useSearch } from "../../../component/SearchBar";
-import { doctorData } from "../../../component/Data";
 import { useNavigate } from "react-router-dom";
 import { RiDeleteBinLine } from "react-icons/ri";
+import AddDoctor from "./AddDoctor";
+import ViewDoctor from "./ViewDoctor";
+import { toast } from "react-toastify";
+import { API } from "../../../Constant";
+import EditDoctor from "./EditDoctor";
+import DeleteModal from "../../../component/DeleteModal";
 
 const Doctor = () => {
+  const [addDoctorModal, setAddDoctorModal] = useState(false);
+  const [doctorId, setDoctorId] = useState(null);
+  const [viewModal, setViewModal] = useState(false);
+  const [editModal, setEditModal] = useState(false);
   const { searchTerm } = useSearch();
   const [filteredData, setFilteredData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const navigate = useNavigate();
+  const [deleteModal, setDeleteModal] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
 
   const itemsPerPage = 10;
-  useEffect(() => {
-    if (!searchTerm) {
-      setFilteredData(doctorData);
-      return;
+
+
+  
+
+  // ✅ Fetch Doctors - moved outside useEffect
+  const fetchDoctors = async () => {
+    try {
+      const res = await axios.get(`${API}/doctor/getalldoctors`);
+      const list = res.data?.data || [];
+      setFilteredData(list);
+    } catch (err) {
+      console.error("Error fetching doctors:", err);
+      setFilteredData([]);
     }
+  };
 
-    const lowerSearchTerm = searchTerm.toString().toLowerCase();
+  useEffect(() => {
+    fetchDoctors();
+  }, []);
 
-    const filtered = doctorData.filter((item) =>
-      Object.values(item).some((value) => {
-        const lowerValue = value.toString().toLowerCase();
+  useEffect(() => {
+    if (!searchTerm) return;
 
-        if (lowerValue === lowerSearchTerm) return true;
-
-        if (!isNaN(searchTerm) && lowerValue.includes(searchTerm)) return true;
-
-        return lowerValue.startsWith(lowerSearchTerm);
-      })
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    const filtered = filteredData.filter((item) =>
+      Object.values(item).some((value) =>
+        value?.toString().toLowerCase().includes(lowerSearchTerm)
+      )
     );
-
     setFilteredData(filtered);
     setCurrentPage(1);
   }, [searchTerm]);
@@ -47,15 +67,33 @@ const Doctor = () => {
     startIndex + itemsPerPage
   );
 
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`${API}/doctor/deletedoctor/${id}`);
+      toast.success("Doctor deleted successfully");
+      fetchDoctors();
+    } catch (error) {
+      toast.error("Failed to delete doctor");
+    }
+  };
+
   const statusColorMap = {
-    Active: "font-bold text-green-700",
-    Inactive: "font-bold text-red-700",
+    active: "text-green-600 font-semibold",
+    inactive: "text-red-600 font-semibold",
+    on_leave: "text-yellow-600 font-semibold",
   };
 
   return (
     <>
       <div className="relative">
         <div className="font-layout-font absolute -top-13 right-0 flex justify-end items-center gap-2 pb-2">
+          <p
+            onClick={() => setAddDoctorModal(true)}
+            className="cursor-pointer flex items-center dark:text-white gap-2 bg-select_layout-dark px-3 py-2 text-sm rounded-md"
+          >
+            <Plus size={16} />
+            Add Doctor
+          </p>
           <p className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md">
             <TbFileExport />
             Export
@@ -63,6 +101,7 @@ const Doctor = () => {
           <Filter />
         </div>
       </div>
+
       <div className="font-layout-font overflow-auto no-scrollbar">
         <table className="w-full xl:h-fit h-[703px] dark:text-white whitespace-nowrap">
           <thead>
@@ -86,45 +125,62 @@ const Doctor = () => {
               <th className="pr-2 rounded-r-lg">Action</th>
             </tr>
           </thead>
+
           <tbody className="dark:bg-layout-dark bg-layout-light rounded-2xl dark:text-gray-200 text-gray-600 cursor-default">
             {paginatedData.length > 0 ? (
               paginatedData.map((data, index) => (
                 <tr
                   className="border-b-2 dark:border-overall_bg-dark border-overall_bg-light text-center"
-                  key={index}
+                  key={data._id}
                 >
                   <td className="rounded-l-lg">
                     {(currentPage - 1) * itemsPerPage + index + 1}
                   </td>
-                  <td>{data.doctorName}</td>
+                  <td>{data.doctor_name}</td>
                   <td>{data.city}</td>
-                  <td>
-                    {data.experience} {data.experience === 1 ? "yr" : "yrs"}
-                  </td>
+                  <td>{data.experience} yrs</td>
                   <td>{data.specialization}</td>
                   <td>{data.contact}</td>
                   <td>
-                    {data.pendingPayment && data.pendingPayment > 0
-                      ? `₹${data.pendingPayment.toLocaleString()}`
+                    {data.pending_payment > 0
+                      ? `₹${data.pending_payment.toLocaleString()}`
                       : "No Pending"}
                   </td>
                   <td>
                     <span
-                      className={`px-2 py-1 rounded-full text-sm font-bold ${
-                        statusColorMap[data.status] || " text-gray-700"
+                      className={`px-2 py-1 rounded-full text-sm ${
+                        statusColorMap[data.status] || "text-gray-500"
                       }`}
                     >
                       {data.status}
                     </span>
                   </td>
                   <td className="pl-4 p-2.5 rounded-r-lg">
-                    <button className="cursor-pointer bg-[#BAFFBA] text-green-600 w-fit rounded-sm py-1.5 px-1.5">
+                    <button
+                      onClick={() => {
+                        setDoctorId(data);
+                        setViewModal(true);
+                      }}
+                      className="cursor-pointer bg-[#BAFFBA] text-green-600 w-fit rounded-sm py-1.5 px-1.5"
+                    >
                       <LuEye size={16} />
                     </button>{" "}
-                    <button className="cursor-pointer bg-blue-200 w-fit rounded-sm py-1.5 px-1.5">
+                    <button
+                      onClick={() => {
+                        setDoctorId(data);
+                        setEditModal(true);
+                      }}
+                      className="cursor-pointer bg-blue-200 w-fit rounded-sm py-1.5 px-1.5"
+                    >
                       <Pencil size={16} className="text-blue-600" />
                     </button>{" "}
-                    <button className="cursor-pointer bg-pink-200 text-red-500 w-fit rounded-sm py-1.5 px-1.5">
+                    <button
+                      onClick={() => {
+                        setDeleteId(data._id);
+                        setDeleteModal(true);
+                      }}
+                      className="cursor-pointer bg-pink-200 text-red-500 w-fit rounded-sm py-1.5 px-1.5"
+                    >
                       <RiDeleteBinLine size={16} />
                     </button>
                   </td>
@@ -147,6 +203,40 @@ const Doctor = () => {
         currentPage={currentPage}
         onPageChange={setCurrentPage}
       />
+
+      {addDoctorModal && (
+        <AddDoctor
+          onclose={() => {
+            setAddDoctorModal(false);
+            fetchDoctors();
+          }}
+        />
+      )}
+
+      {viewModal && (
+        <ViewDoctor onclose={() => setViewModal(false)} doctors={doctorId} />
+      )}
+      {editModal && (
+        <EditDoctor
+          onclose={() => setEditModal(false)}
+          doctors={doctorId}
+          onSuccess={fetchDoctors}
+        />
+      )}
+      {deleteModal && (
+        <DeleteModal
+          title="doctor"
+          onclose={() => setDeleteModal(false)}
+          onConfirm={async () => {
+            try {
+              await handleDelete(deleteId);
+              setDeleteModal(false);
+            } catch (err) {
+              console.error(err);
+            }
+          }}
+        />
+      )}
     </>
   );
 };
