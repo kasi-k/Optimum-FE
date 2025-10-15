@@ -87,7 +87,7 @@ const Employee = () => {
                 "Name",
                 "Role",
                 "Department",
-                "In Patient",
+                // "In Patient",
                 "Status",
               ].map((heading) => (
                 <th key={heading} className="p-5">
@@ -113,7 +113,7 @@ const Employee = () => {
                   <td>{data.name}</td>
                   <td>{data.role_name}</td>
                   <td>{data.department}</td>
-                  <td>{data.inpatient}</td>
+                  {/* <td>{data.inpatient}</td> */}
                   <td>{data.status}</td>
                   <td className="pl-4 p-2.5 rounded-r-lg space-x-3">
                     <button className="cursor-pointer bg-blue-200 w-fit rounded-sm py-1.5 px-1.5">
