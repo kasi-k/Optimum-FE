@@ -56,6 +56,7 @@ const AddTasks = ({ onclose,onSuccess }) => {
       formData.append("note", data.note || "");
       formData.append("assigned_to", data.assigned_to || "");
       assigned.forEach((user) => formData.append("assigned_to[]", user.value));
+  
 
       if (data.attachments && data.attachments.length > 0) {
         Array.from(data.attachments).forEach((file) => {
@@ -158,7 +159,7 @@ const AddTasks = ({ onclose,onSuccess }) => {
               <label className="font-medium">Assigned To</label>
               <MultiSelect
                 options={availableUsers.map((user) => ({
-                  value: user.name,
+                  value: user.employee_id,
                   label: user.name,
                 }))}
                 value={watch("assigned_to") || []} // ✅ fallback to []

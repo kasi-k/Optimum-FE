@@ -7,14 +7,22 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { API } from "../../../Constant";
 
-// Yup schema
+// Yup schema including new fields
 const schema = yup.object().shape({
   name: yup.string().required("Name is required"),
+  address: yup.string().required("Address is required"),
+  dob: yup.date().required("Date of Birth is required"),
+  gender: yup.string().required("Gender is required"),
+  phone: yup.string().required("Phone is required"),
+  email: yup.string().email("Invalid email").required("Email is required"),
   department: yup.string().required("Department is required"),
+  rpperson: yup.string().required("Reporting Person is required"),
+  language: yup.string().required("Language is required"),
 });
 
 const AddEmployee = ({ onclose, createdByUser }) => {
   const [loading, setLoading] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -25,97 +33,193 @@ const AddEmployee = ({ onclose, createdByUser }) => {
 
   const onSubmit = async (data) => {
     const payload = {
-      name: data.name,
-      department: data.department,
+      ...data,
       created_by: createdByUser || "Admin",
     };
 
     try {
       setLoading(true);
-      await axios.post(`${API}/employee/add`, payload); // 👈 your backend route
+      await axios.post(`${API}/employee/add`, payload);
       toast.success("Employee created successfully");
-      
       onclose();
     } catch (error) {
-      console.error("Error creating employee:", error);
+      console.error(error);
       toast.error(error.response?.data?.message || "Failed to create employee");
     } finally {
       setLoading(false);
     }
   };
 
+  const inputClass =
+    "p-2 rounded-md w-full bg-transparent border border-gray-600 dark:border-gray-500 text-black dark:text-white placeholder:text-gray-400";
+
   return (
     <div className="font-layout-font fixed inset-0 grid z-20 justify-center items-center backdrop-blur-xs">
-      <div className="mx-2 p-4 shadow-lg dark:bg-popup-gray bg-layout-light dark:bg-layout-dark rounded-lg drop-shadow-2xl lg:w-[500px] md:w-[500px] w-96 relative">
-        <div className="grid p-4 text-layout_text-light dark:text-layout_text-dark">
-          <button
-            onClick={onclose}
-            className="place-self-end dark:bg-popup-gray bg-white dark:bg-layout-dark absolute rounded-full -top-5 -right-4 lg:shadow-md md:shadow-md shadow-none lg:py-3 md:py-3 py-0 lg:px-3 md:px-3 px-0"
-          >
-            <IoClose className="size-[24px]" />
-          </button>
+      <div className="mx-2 p-4 shadow-lg dark:bg-popup-gray bg-layout-light dark:bg-layout-dark rounded-lg drop-shadow-2xl lg:w-[700px] md:w-[600px] w-96 relative">
+        <button
+          onClick={onclose}
+          className="place-self-end  bg-white dark:bg-layout-dark absolute rounded-full -top-5 -right-4 lg:shadow-md md:shadow-md shadow-none lg:py-3 md:py-3 py-0 lg:px-3 md:px-3 px-0"
+        >
+          <IoClose className="size-[24px] text-white" />
+        </button>
 
-          <h1 className="text-center font-semibold text-xl py-2 mb-4 dark:text-white text-black">
-            Add Employee
-          </h1>
+        <h1 className="text-center font-semibold text-xl py-2 mb-4 dark:text-white text-black">
+          Add Employee
+        </h1>
 
-          <form
-            className="grid grid-cols-1 sm:grid-cols-2 space-y-2 gap-4 dark:text-white text-black"
-            onSubmit={handleSubmit(onSubmit)}
-          >
-            <div className="flex col-span-2 gap-5 justify-between items-center">
-              <label className="font-medium">Name</label>
-              <input
-                type="text"
-                placeholder="enter name"
-                className="p-2 rounded-md w-72 bg-transparent border border-gray-600 dark:placeholder:text-white text-black dark:text-white"
-                {...register("name")}
-              />
-            </div>
+        <form
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4 dark:text-white text-black"
+          onSubmit={handleSubmit(onSubmit)}
+        >
+  
+     
+
+          {/* Name */}
+          <div className="flex flex-col gap-1">
+            <label className="font-medium">Name</label>
+            <input
+              type="text"
+              placeholder="Enter full name"
+              {...register("name")}
+              className={inputClass}
+            />
             {errors.name && (
-              <span className="text-red-500 text-xs col-span-2">
-                {errors.name.message}
-              </span>
+              <span className="text-red-500 text-xs">{errors.name.message}</span>
             )}
+          </div>
 
-            <div className="flex col-span-2 gap-5 justify-between items-center">
-              <label className="font-medium">Department</label>
-              <input
-                type="text"
-                placeholder="enter department"
-                className="p-2 rounded-md w-72 bg-transparent border border-gray-600 dark:placeholder:text-white text-black dark:text-white"
-                {...register("department")}
-              />
-            </div>
+          {/* Date of Birth */}
+          <div className="flex flex-col gap-1">
+            <label className="font-medium">Date of Birth</label>
+            <input
+              type="date"
+              {...register("dob")}
+              className={inputClass}
+            />
+            {errors.dob && (
+              <span className="text-red-500 text-xs">{errors.dob.message}</span>
+            )}
+          </div>
+
+          {/* Gender */}
+          <div className="flex flex-col gap-1">
+            <label className="font-medium">Gender</label>
+            <select
+              {...register("gender")}
+              className={inputClass}
+            >
+              <option value="" className="bg-layout-dark">Select gender</option>
+              <option value="Male"className="bg-layout-dark">Male</option>
+              <option value="Female"className="bg-layout-dark">Female</option>
+              <option value="Other"className="bg-layout-dark">Other</option>
+            </select>
+            {errors.gender && (
+              <span className="text-red-500 text-xs">{errors.gender.message}</span>
+            )}
+          </div>
+
+          {/* Phone */}
+          <div className="flex flex-col gap-1">
+            <label className="font-medium">Phone</label>
+            <input
+              type="text"
+              placeholder="Enter phone number"
+              {...register("phone")}
+              className={inputClass}
+            />
+            {errors.phone && (
+              <span className="text-red-500 text-xs">{errors.phone.message}</span>
+            )}
+          </div>
+
+          {/* Email */}
+          <div className="flex flex-col gap-1">
+            <label className="font-medium">Email</label>
+            <input
+              type="email"
+              placeholder="Enter email address"
+              {...register("email")}
+              className={inputClass}
+            />
+            {errors.email && (
+              <span className="text-red-500 text-xs">{errors.email.message}</span>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="font-medium">Address</label>
+            <input
+              type="text"
+              placeholder="Enter full address"
+              {...register("address")}
+              className={inputClass}
+            />
+            {errors.name && (
+              <span className="text-red-500 text-xs">{errors.address.message}</span>
+            )}
+          </div>
+
+          {/* Department */}
+          <div className="flex flex-col gap-1">
+            <label className="font-medium">Department</label>
+            <input
+              type="text"
+              placeholder="Enter department"
+              {...register("department")}
+              className={inputClass}
+            />
             {errors.department && (
-              <span className="text-red-500 text-xs col-span-2">
-                {errors.department.message}
-              </span>
+              <span className="text-red-500 text-xs">{errors.department.message}</span>
             )}
+          </div>
 
-            {/* Buttons */}
-            <div className=" col-span-2 flex justify-end items-center gap-4 mt-4  text-sm font-normal">
-              <p
-                onClick={onclose}
-                disabled={loading}
-                className={`cursor-pointer border border-select_layout-dark text-select_layout-dark px-6 py-1.5 rounded-sm ${
-                  loading ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-              >
-                Cancel
-              </p>
-              <button
-                type="submit"
-                disabled={loading}
-                className={`cursor-pointer bg-select_layout-dark dark:text-black text-white px-6 py-1.5 rounded-sm ${
-                  loading ? "bg-gray-500 cursor-not-allowed" : "bg-darkest-blue"
-                }`}
-              >
-                Save
-              </button>
-            </div>
-          </form>
-        </div>
+          {/* Reporting Person */}
+          <div className="flex flex-col gap-1">
+            <label className="font-medium">Reporting Person</label>
+            <input
+              type="text"
+              placeholder="Enter reporting person"
+              {...register("rpperson")}
+              className={inputClass}
+            />
+            {errors.rpperson && (
+              <span className="text-red-500 text-xs">{errors.rpperson.message}</span>
+            )}
+          </div>
+
+          {/* Language */}
+          <div className="flex flex-col gap-1">
+            <label className="font-medium">Language</label>
+            <input
+              type="text"
+              placeholder="Enter language"
+              {...register("language")}
+              className={inputClass}
+            />
+            {errors.language && (
+              <span className="text-red-500 text-xs">{errors.language.message}</span>
+            )}
+          </div>
+
+          {/* Buttons */}
+          <div className="col-span-2 flex justify-end gap-4 mt-4">
+            <p
+              onClick={onclose}
+              className="cursor-pointer border border-select_layout-dark text-select_layout-dark px-6 py-1.5 rounded-sm"
+            >
+              Cancel
+            </p>
+            <button
+              type="submit"
+              disabled={loading}
+              className={`cursor-pointer bg-select_layout-dark dark:text-black text-white px-6 py-1.5 rounded-sm ${
+                loading ? "bg-gray-500 cursor-not-allowed" : "bg-darkest-blue"
+              }`}
+            >
+              {loading ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

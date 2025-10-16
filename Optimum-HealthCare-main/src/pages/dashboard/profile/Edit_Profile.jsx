@@ -1,123 +1,240 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
 import { IoClose } from "react-icons/io5";
+import axios from "axios";
+import { toast } from "react-toastify";
+import { API } from "../../../Constant";
 
-const Edit_Profile = ({ onclose }) => {
+// Yup schema
+const schema = yup.object().shape({
+  name: yup.string().required("Name is required"),
+  address: yup.string().required("Address is required"),
+  dob: yup.date().required("Date of Birth is required"),
+  gender: yup.string().required("Gender is required"),
+  phone: yup.string().required("Phone is required"),
+  email: yup.string().email("Invalid email").required("Email is required"),
+  department: yup.string().required("Department is required"),
+  rpperson: yup.string().required("Reporting Person is required"),
+  language: yup.string().required("Language is required"),
+});
+
+const Edit_Profile = ({ onclose, employeeId,onSuccess }) => {
+  const [loading, setLoading] = useState(false);
+  const [initialData, setInitialData] = useState(null);
+  
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
+  });
+
+  // Fetch employee data to prefill form
+  const fetchEmployee = async () => {
+    try {
+      const res = await axios.get(`${API}/employee/getemployee/${employeeId}`);
+          let data = res.data.data;
+
+    // Convert dob to yyyy-MM-dd format for <input type="date" />
+    if (data.dob) {
+      const date = new Date(data.dob);
+      data.dob = date.toISOString().split("T")[0]; // "yyyy-MM-dd"
+    }
+      setInitialData(res.data.data);
+      reset(res.data.data); // populate form
+    } catch (err) {
+      console.error("Failed to fetch employee:", err);
+      toast.error("Failed to load employee data");
+    }
+  };
+
+  useEffect(() => {
+    fetchEmployee();
+  }, [employeeId]);
+
+  const onSubmit = async (data) => {
+    try {
+      setLoading(true);
+      await axios.put(`${API}/employee/updateemployee/${employeeId}`, data);
+      toast.success("Employee updated successfully");
+      onSuccess();
+      onclose();
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Failed to update employee");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const inputClass =
+    "p-2 rounded-md w-full bg-transparent border border-gray-600 dark:border-gray-500 text-black dark:text-white placeholder:text-gray-400";
+
+  if (!initialData) return <p className="text-center py-10">Loading...</p>;
+
   return (
     <div className="font-layout-font fixed inset-0 grid z-20 justify-center items-center backdrop-blur-xs">
-      <div className="mx-2 p-4 shadow-lg dark:bg-popup-gray bg-layout-light dark:bg-layout-dark rounded-lg drop-shadow-2xl w-auto  relative">
-        <div className="grid p-4 text-layout_text-light dark:text-layout_text-dark">
-          <button
-            onClick={onclose}
-            className="place-self-end dark:bg-popup-gray bg-white dark:bg-layout-dark absolute rounded-full -top-5 -right-4 lg:shadow-md md:shadow-md shadow-none lg:py-3 md:py-3 py-0 lg:px-3 md:px-3 px-0"
-          >
-            <IoClose className="size-[24px]" />
-          </button>
+      <div className="mx-2 p-4 shadow-lg dark:bg-popup-gray bg-layout-light dark:bg-layout-dark rounded-lg drop-shadow-2xl lg:w-[700px] md:w-[600px] w-96 relative">
+        <button
+          onClick={onclose}
+          className="place-self-end bg-white dark:bg-layout-dark absolute rounded-full -top-5 -right-4 lg:shadow-md md:shadow-md shadow-none lg:py-3 md:py-3 py-0 lg:px-3 md:px-3 px-0"
+        >
+          <IoClose className="size-[24px] text-white" />
+        </button>
 
-          <h1 className="text-center font-semibold text-xl py-2 mb-4 dark:text-white text-black">
-            Edit Personal Info
-          </h1>
-          <form className="">
-            <div className="grid grid-cols-2 mb-3 items-center gap-4 dark:text-white text-black">
-              <p className="m-0">Employee ID</p>
-              <input
-                type="text"
-                placeholder="EMP001"
-                className="outline-none placeholder:text-gray-400 w-56 p-2 rounded-md bg-transparent border border-gray-600 dark:text-white text-black"
-              />
-            </div>
+        <h1 className="text-center font-semibold text-xl py-2 mb-4 dark:text-white text-black">
+          Edit Employee
+        </h1>
 
-            <div className="grid grid-cols-2 mb-3 items-center gap-4 dark:text-white text-black">
-              <p className="m-0">Name</p>
-              <input
-                type="text"
-                placeholder="Name"
-                className="outline-none placeholder:text-gray-400 w-56 p-2 rounded-md bg-transparent border border-gray-600 dark:text-white text-black"
-              />
-            </div>
+        <form
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4 dark:text-white text-black"
+          onSubmit={handleSubmit(onSubmit)}
+        >
+          {/* Name */}
+          <div className="flex flex-col gap-1">
+            <label className="font-medium">Name</label>
+            <input
+              type="text"
+              placeholder="Enter full name"
+              {...register("name")}
+              className={inputClass}
+            />
+            {errors.name && (
+              <span className="text-red-500 text-xs">{errors.name.message}</span>
+            )}
+          </div>
 
-            <div className="grid grid-cols-2 mb-3 items-center gap-4 dark:text-white text-black">
-              <p className="m-0">Designation</p>
-              <input
-                type="text"
-                placeholder="Neurologist"
-                className="outline-none placeholder:text-gray-400 w-56 p-2 rounded-md bg-transparent border border-gray-600 dark:text-white text-black"
-              />
-            </div>
+          {/* Date of Birth */}
+          <div className="flex flex-col gap-1">
+            <label className="font-medium">Date of Birth</label>
+            <input type="date" {...register("dob")} className={inputClass} />
+            {errors.dob && (
+              <span className="text-red-500 text-xs">{errors.dob.message}</span>
+            )}
+          </div>
 
-            <div className="grid grid-cols-2 mb-3 items-center gap-4 dark:text-white text-black">
-              <p className="m-0">Gender</p>
-              <input
-                type="text"
-                placeholder="Female"
-                className="outline-none placeholder:text-gray-400 w-56 p-2 rounded-md bg-transparent border border-gray-600 dark:text-white text-black"
-              />
-            </div>
+          {/* Gender */}
+          <div className="flex flex-col gap-1">
+            <label className="font-medium">Gender</label>
+            <select {...register("gender")} className={inputClass}>
+              <option value="">Select gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+            {errors.gender && (
+              <span className="text-red-500 text-xs">{errors.gender.message}</span>
+            )}
+          </div>
 
-            <div className="grid grid-cols-2 mb-3 items-center gap-4 dark:text-white text-black">
-              <p className="m-0">Date of Birth</p>
-              <input
-                type="date"
-                placeholder="2000-06-11"
-                className="outline-none placeholder:text-gray-400 w-56 p-2 rounded-md bg-transparent border border-gray-600 dark:text-white text-black"
-              />
-            </div>
+          {/* Phone */}
+          <div className="flex flex-col gap-1">
+            <label className="font-medium">Phone</label>
+            <input
+              type="text"
+              placeholder="Enter phone number"
+              {...register("phone")}
+              className={inputClass}
+            />
+            {errors.phone && (
+              <span className="text-red-500 text-xs">{errors.phone.message}</span>
+            )}
+          </div>
 
-            <div className="grid grid-cols-2 mb-3 items-center gap-4 dark:text-white text-black">
-              <p className="m-0">Mobile Number</p>
-              <input
-                type="text"
-                placeholder="00000 00000"
-                className="outline-none placeholder:text-gray-400 w-56 p-2 rounded-md bg-transparent border border-gray-600 dark:text-white text-black"
-              />
-            </div>
+          {/* Email */}
+          <div className="flex flex-col gap-1">
+            <label className="font-medium">Email</label>
+            <input
+              type="email"
+              placeholder="Enter email address"
+              {...register("email")}
+              className={inputClass}
+            />
+            {errors.email && (
+              <span className="text-red-500 text-xs">{errors.email.message}</span>
+            )}
+          </div>
 
-            <div className="grid grid-cols-2 mb-3 items-center gap-4 dark:text-white text-black">
-              <p className="m-0">Email ID</p>
-              <input
-                type="email"
-                placeholder="hdjhshfhfj@gmail.com"
-                className="outline-none placeholder:text-gray-400 w-56 p-2 rounded-md bg-transparent border border-gray-600 dark:text-white text-black"
-              />
-            </div>
+          {/* Address */}
+          <div className="flex flex-col gap-1">
+            <label className="font-medium">Address</label>
+            <input
+              type="text"
+              placeholder="Enter full address"
+              {...register("address")}
+              className={inputClass}
+            />
+            {errors.address && (
+              <span className="text-red-500 text-xs">{errors.address.message}</span>
+            )}
+          </div>
 
-            <div className="grid grid-cols-2 mb-3 items-center gap-4 dark:text-white text-black">
-              <p className="m-0">Joining Date</p>
-              <input
-                type="date"
-                placeholder="2024-06-11"
-                className="outline-none placeholder:text-gray-400 w-56 p-2 rounded-md bg-transparent border border-gray-600 dark:text-white text-black"
-              />
-            </div>
+          {/* Department */}
+          <div className="flex flex-col gap-1">
+            <label className="font-medium">Department</label>
+            <input
+              type="text"
+              placeholder="Enter department"
+              {...register("department")}
+              className={inputClass}
+            />
+            {errors.department && (
+              <span className="text-red-500 text-xs">{errors.department.message}</span>
+            )}
+          </div>
 
-            <div className="grid grid-cols-2 mb-3 items-center gap-4 dark:text-white text-black">
-              <p className="m-0">Language</p>
-              <input
-                type="text"
-                placeholder="English"
-                className="outline-none placeholder:text-gray-400 w-56 p-2 rounded-md bg-transparent border border-gray-600 dark:text-white text-black"
-              />
-            </div>
-            <div className="grid grid-cols-2 mb-3 items-center gap-4 dark:text-white text-black">
-              <p className="m-0">Address</p>
-              <input
-                type="text"
-                placeholder="Chennai"
-                className="outline-none placeholder:text-gray-400 w-56 p-2 rounded-md bg-transparent border border-gray-600 dark:text-white text-black"
-              />
-            </div>
-          </form>
-          <div className="w-full flex justify-end items-center gap-4 mt-4 mr-6 text-sm font-normal">
+          {/* Reporting Person */}
+          <div className="flex flex-col gap-1">
+            <label className="font-medium">Reporting Person</label>
+            <input
+              type="text"
+              placeholder="Enter reporting person"
+              {...register("rpperson")}
+              className={inputClass}
+            />
+            {errors.rpperson && (
+              <span className="text-red-500 text-xs">{errors.rpperson.message}</span>
+            )}
+          </div>
+
+          {/* Language */}
+          <div className="flex flex-col gap-1">
+            <label className="font-medium">Language</label>
+            <input
+              type="text"
+              placeholder="Enter language"
+              {...register("language")}
+              className={inputClass}
+            />
+            {errors.language && (
+              <span className="text-red-500 text-xs">{errors.language.message}</span>
+            )}
+          </div>
+
+          {/* Buttons */}
+          <div className="col-span-2 flex justify-end gap-4 mt-4">
             <p
               onClick={onclose}
               className="cursor-pointer border border-select_layout-dark text-select_layout-dark px-6 py-1.5 rounded-sm"
             >
               Cancel
             </p>
-            <p className="cursor-pointer bg-select_layout-dark dark:text-black text-white px-6 py-1.5 rounded-sm">
-              Save
-            </p>
+            <button
+              type="submit"
+              disabled={loading}
+              className={`cursor-pointer bg-select_layout-dark dark:text-black text-white px-6 py-1.5 rounded-sm ${
+                loading ? "bg-gray-500 cursor-not-allowed" : "bg-darkest-blue"
+              }`}
+            >
+              {loading ? "Saving..." : "Save"}
+            </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );

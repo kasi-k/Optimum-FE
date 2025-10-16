@@ -32,6 +32,13 @@ const Tasks = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [deleteModal, setDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+const [users, setUsers] = useState([]);
+
+useEffect(() => {
+  axios.get(`${API}/employee/getallemployees`)
+    .then(res => setUsers(res.data.data))
+    .catch(err => console.error(err));
+}, []);
 
   const itemsPerPage = 10;
   const navigate = useNavigate();
@@ -41,6 +48,7 @@ const Tasks = () => {
     completed: "font-bold text-green-700",
     incomplete: "font-bold text-red-700",
   };
+  const user = JSON.parse(localStorage.getItem("employee"));
 
   // ✅ Fetch Tasks from API
   const fetchTasks = async () => {
@@ -48,16 +56,13 @@ const Tasks = () => {
     try {
       const res = await axios.get(`${API}/task/getalltasks`, {
         params: {
-          page: currentPage,
-          limit: itemsPerPage,
-          search: searchTerm,
-          fromdate: filterParams.fromdate,
-          todate: filterParams.todate,
+          role_name: user.role.role_name,
+          employee_id: user.employee_id,
         },
       });
+      console.log(res);
 
       setTasks(res.data.data || []);
-      setTotalPages(res.data.totalPages || 0);
     } catch (err) {
       toast.error("Failed to fetch tasks");
     } finally {
@@ -79,6 +84,40 @@ const Tasks = () => {
       toast.error("Failed to delete task");
     }
   };
+  // Map IDs to names
+// const tasksWithNames = tasks.map(task => ({
+//   ...task,
+//   assigned_to_name: task.assigned_to
+//     .map(id => users.find(u => u.employee_id === id)?.name || id)
+//     .join(", ")
+// }));
+// Filter tasks first based on role and employee
+const filteredTasks = tasks.filter(task => {
+  if (user.role.role_name === "admin") return true; // Admin sees all
+  return task.assigned_to.includes(user.employee_id); // Employee sees only their tasks
+});
+
+const tasksWithNames = filteredTasks.map(task => {
+  let assignedNames = [];
+
+  if (user.role.role_name === "admin") {
+    // Admin sees all assigned users
+    assignedNames = task.assigned_to
+      .map(id => users.find(u => u.employee_id === id)?.name || id);
+  } else {
+    // Employee sees only their own name
+    assignedNames = task.assigned_to
+      .filter(id => id === user.employee_id)
+      .map(id => users.find(u => u.employee_id === id)?.name || id);
+  }
+
+  return {
+    ...task,
+    assigned_to_name: assignedNames.join(", "),
+  };
+});
+
+
 
   return (
     <>
@@ -131,8 +170,8 @@ const Tasks = () => {
                   Loading tasks...
                 </td>
               </tr>
-            ) : tasks.length > 0 ? (
-              tasks.map((data, index) => (
+            ) : tasksWithNames.length > 0 ? (
+              tasksWithNames.map((data, index) => (
                 <tr
                   className="border-b-2 dark:border-overall_bg-dark border-overall_bg-light text-center"
                   key={data._id}
@@ -144,9 +183,7 @@ const Tasks = () => {
                   <td>{formatDate(data.start_date)}</td>
                   <td>{formatDate(data.due_date)}</td>
                   <td>
-                    {Array.isArray(data.assigned_to)
-                      ? data.assigned_to.join(", ")
-                      : data.assigned_to}
+             {data.assigned_to_name}
                   </td>
                   <td className="first-letter:capitalize">
                     <span
@@ -216,7 +253,7 @@ const Tasks = () => {
       {edittasks && (
         <EditTasks task={selectedTask} onclose={() => setEdittasks(false)} />
       )}
-       {deleteModal && (
+      {deleteModal && (
         <DeleteModal
           title="task"
           onclose={() => setDeleteModal(false)}

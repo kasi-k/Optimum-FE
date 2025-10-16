@@ -5,6 +5,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import axios from "axios";
 import { API } from "../../../Constant";
+import { toast } from "react-toastify";
 
 const schema = yup.object().shape({
   userid: yup.string().required("User ID is required"),
@@ -55,6 +56,8 @@ const AddUser = ({ onclose ,onSuccess}) => {
 
     if (selectedUser) {
       setValue("name", selectedUser.name || "");
+      setValue("email", selectedUser.email || "");
+      setValue("phone", selectedUser.phone || "");
     }
   };
 
@@ -76,11 +79,12 @@ const AddUser = ({ onclose ,onSuccess}) => {
     try {
       setLoading(true);
       await axios.put(`${API}/employee/updateemployee/${employee_id}`, payload);
+      toast.success("user Added asuccesfully")
       onSuccess();
       onclose();
     } catch (err) {
       console.error("Error updating user:", err);
-      alert(err.response?.data?.message || "Failed to update user");
+      toast.error( "  user email already exists");
     } finally {
       setLoading(false);
     }

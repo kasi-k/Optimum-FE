@@ -65,6 +65,7 @@ const Login = () => {
         ...data,
         location, // send user location automatically
       });
+console.log(res);
 
       toast.success("Login Succesfully");
 

@@ -30,87 +30,96 @@ import Profile from "./pages/dashboard/profile/Profile";
 import Tasks from "./pages/tasks/Tasks";
 import ViewTasks from "./pages/tasks/ViewTasks";
 import { ToastContainer } from "react-toastify";
+import AutoLogout from "./pages/auth/AutoLogout";
 
-const App = () => {
+const AppContent = () => {
+  const { showWarning, warningCountdown, stayLoggedIn } = AutoLogout();
+
   return (
     <>
-      <BrowserRouter>
-        <Routes>
-          {/* <Route path="" element={<SignUp />} /> */}
-          <Route path="/" element={<Login />} />
-          <Route path="/forgotpassword" element={<ForgotPassword />} />
-          <Route path="/" element={<Layout />}>
-            {/* <Route path="/dashboard" element={<Dashboard />} /> */}
-            {/* <Route path="/admin_dashboard" element={<Admin_Dashboard />} /> */}
-            <Route path="/dashboard">
-              <Route index element={<Dashboard_Tab />} />
-              <Route path="profile">
-                <Route index element={<Profile />} />
-              </Route>
+      {showWarning && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-md text-center w-80">
+            <p className="text-lg font-semibold mb-2">
+              You will be logged out soon!
+            </p>
+            <p className="mb-4">
+              {warningCountdown} seconds remaining due to inactivity.
+            </p>
+            <button
+              onClick={stayLoggedIn}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md"
+            >
+              Stay Logged In
+            </button>
+          </div>
+        </div>
+      )}
+
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<Login />} />
+        {/* <Route path="/signup" element={<SignUp />} /> */}
+        {/* <Route path="/forgotpassword" element={<ForgotPassword />} /> */}
+
+        {/* Protected routes inside Layout */}
+        <Route path="/" element={<Layout />}>
+          {" "}
+          {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+          {/* <Route path="/admin_dashboard" element={<Admin_Dashboard />} /> */}
+          <Route path="/dashboard">
+            <Route index element={<Dashboard_Tab />} />
+            <Route path="profile" element={<Profile />} />
+          </Route>
+          <Route path="/tasks">
+            <Route index element={<Tasks />} />
+            <Route path="viewtasks" element={<ViewTasks />} />
+          </Route>
+          <Route path="/appointment">
+            <Route index element={<Appointment />} />
+            <Route path="invoice" element={<Invoice />} />
+          </Route>
+          <Route path="/hr" element={<Hr />} />
+          <Route path="/finance" element={<Finance />} />
+          <Route path="/editgmb" element={<EditGmbSet />} />
+          <Route path="/leads">
+            <Route index element={<Leads />} />
+            <Route path="viewcampaign">
+              <Route index element={<ViewCampaign />} />
             </Route>
-            <Route path="/tasks">
-              <Route index element={<Tasks />} />
-              <Route path="viewtasks">
-                <Route index element={<ViewTasks />} />
-              </Route>
-            </Route>
-            <Route path="/appointment">
-              <Route index element={<Appointment />} />
-              <Route path="invoice">
-                <Route index element={<Invoice />} />
-              </Route>
-            </Route>
-            {/* <Route path="/gmb" element={<Gmb />} /> */}
-            <Route path="/hr" element={<Hr />} />
-            <Route path="/finance" element={<Finance />} />
-            <Route path="/editgmb" element={<EditGmbSet />} />
-            <Route path="/leads">
-              <Route index element={<Leads />} />
-              <Route path="viewcampaign">
-                <Route index element={<ViewCampaign />} />
-              </Route>
-              <Route path="viewleads">
-                <Route index element={<ViewLeads />} />
-              </Route>
-            </Route>
-            {/* <Route path="/cms">
-              <Route index element={<Cms />} />
-              <Route path="viewblog">
-                <Route index element={<ViewBlog />} />
-              </Route>
-              <Route path="editblog">
-                <Route index element={<EditBlogs />} />
-              </Route>
-            </Route> */}
-            <Route path="/association" element={<Association />} />
-            <Route path="/reports" element={<Report />} />
-            {/* <Route path="/subscription" element={<SubscriptionPlans />} /> */}
-            <Route path="/setting">
-              <Route index element={<Settings />} />
-              <Route path="addrole">
-                <Route index element={<AddRoleAccess />} />
-              </Route>
-              <Route path="editrole">
-                <Route index element={<EditRoleAccess />} />
-              </Route>
+            <Route path="viewleads">
+              <Route index element={<ViewLeads />} />
             </Route>
           </Route>
-        </Routes>
-      </BrowserRouter>
-      <ToastContainer
-        position="top-right"
-        autoClose={2000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="dark"
-      />
+          <Route path="/association" element={<Association />} />
+          <Route path="/reports" element={<Report />} />
+          <Route path="/setting">
+            <Route index element={<Settings />} />
+            <Route path="addrole" element={<AddRoleAccess />} />
+            <Route path="editrole" element={<EditRoleAccess />} />
+          </Route>
+        </Route>
+      </Routes>
     </>
   );
 };
+
+const App = () => (
+  <BrowserRouter>
+    <AppContent />
+    <ToastContainer
+      position="top-right"
+      autoClose={2000}
+      hideProgressBar={false}
+      newestOnTop={false}
+      closeOnClick
+      rtl={false}
+      pauseOnFocusLoss
+      draggable
+      pauseOnHover
+      theme="dark"
+    />
+  </BrowserRouter>
+);
 
 export default App;
