@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -7,7 +7,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { API } from "../../../Constant";
 
-// Yup schema including new fields
+// Yup schema including all fields
 const schema = yup.object().shape({
   name: yup.string().required("Name is required"),
   address: yup.string().required("Address is required"),
@@ -22,6 +22,7 @@ const schema = yup.object().shape({
 
 const AddEmployee = ({ onclose, createdByUser }) => {
   const [loading, setLoading] = useState(false);
+  const [employees, setEmployees] = useState([]);
 
   const {
     register,
@@ -30,6 +31,21 @@ const AddEmployee = ({ onclose, createdByUser }) => {
   } = useForm({
     resolver: yupResolver(schema),
   });
+
+  // Fetch all employees for Reporting Person dropdown
+  const fetchEmployees = async () => {
+    try {
+      const res = await axios.get(`${API}/employee/getallemployees`);
+      setEmployees(res.data.data || []);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to load employees");
+    }
+  };
+
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
 
   const onSubmit = async (data) => {
     const payload = {
@@ -56,24 +72,24 @@ const AddEmployee = ({ onclose, createdByUser }) => {
   return (
     <div className="font-layout-font fixed inset-0 grid z-20 justify-center items-center backdrop-blur-xs">
       <div className="mx-2 p-4 shadow-lg dark:bg-popup-gray bg-layout-light dark:bg-layout-dark rounded-lg drop-shadow-2xl lg:w-[700px] md:w-[600px] w-96 relative">
+        {/* Close Button */}
         <button
           onClick={onclose}
-          className="place-self-end  bg-white dark:bg-layout-dark absolute rounded-full -top-5 -right-4 lg:shadow-md md:shadow-md shadow-none lg:py-3 md:py-3 py-0 lg:px-3 md:px-3 px-0"
+          className="place-self-end bg-white dark:bg-layout-dark absolute rounded-full -top-5 -right-4 lg:shadow-md md:shadow-md shadow-none lg:py-3 md:py-3 py-0 lg:px-3 md:px-3 px-0"
         >
           <IoClose className="size-[24px] text-white" />
         </button>
 
+        {/* Form Title */}
         <h1 className="text-center font-semibold text-xl py-2 mb-4 dark:text-white text-black">
           Add Employee
         </h1>
 
+        {/* Form */}
         <form
           className="grid grid-cols-1 sm:grid-cols-2 gap-4 dark:text-white text-black"
           onSubmit={handleSubmit(onSubmit)}
         >
-  
-     
-
           {/* Name */}
           <div className="flex flex-col gap-1">
             <label className="font-medium">Name</label>
@@ -91,11 +107,7 @@ const AddEmployee = ({ onclose, createdByUser }) => {
           {/* Date of Birth */}
           <div className="flex flex-col gap-1">
             <label className="font-medium">Date of Birth</label>
-            <input
-              type="date"
-              {...register("dob")}
-              className={inputClass}
-            />
+            <input type="date" {...register("dob")} className={inputClass} />
             {errors.dob && (
               <span className="text-red-500 text-xs">{errors.dob.message}</span>
             )}
@@ -104,14 +116,11 @@ const AddEmployee = ({ onclose, createdByUser }) => {
           {/* Gender */}
           <div className="flex flex-col gap-1">
             <label className="font-medium">Gender</label>
-            <select
-              {...register("gender")}
-              className={inputClass}
-            >
-              <option value="" className="bg-layout-dark">Select gender</option>
-              <option value="Male"className="bg-layout-dark">Male</option>
-              <option value="Female"className="bg-layout-dark">Female</option>
-              <option value="Other"className="bg-layout-dark">Other</option>
+            <select {...register("gender")} className={inputClass}>
+              <option value="">Select gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
             </select>
             {errors.gender && (
               <span className="text-red-500 text-xs">{errors.gender.message}</span>
@@ -146,6 +155,7 @@ const AddEmployee = ({ onclose, createdByUser }) => {
             )}
           </div>
 
+          {/* Address */}
           <div className="flex flex-col gap-1">
             <label className="font-medium">Address</label>
             <input
@@ -154,7 +164,7 @@ const AddEmployee = ({ onclose, createdByUser }) => {
               {...register("address")}
               className={inputClass}
             />
-            {errors.name && (
+            {errors.address && (
               <span className="text-red-500 text-xs">{errors.address.message}</span>
             )}
           </div>
@@ -173,15 +183,17 @@ const AddEmployee = ({ onclose, createdByUser }) => {
             )}
           </div>
 
-          {/* Reporting Person */}
+          {/* Reporting Person Dropdown */}
           <div className="flex flex-col gap-1">
             <label className="font-medium">Reporting Person</label>
-            <input
-              type="text"
-              placeholder="Enter reporting person"
-              {...register("rpperson")}
-              className={inputClass}
-            />
+            <select {...register("rpperson")} className={inputClass}>
+              <option value="">Select Reporting Person</option>
+              {employees.map((emp) => (
+                <option className="bg-layout-dark" key={emp._id} value={emp._id}>
+                  {emp.name}
+                </option>
+              ))}
+            </select>
             {errors.rpperson && (
               <span className="text-red-500 text-xs">{errors.rpperson.message}</span>
             )}

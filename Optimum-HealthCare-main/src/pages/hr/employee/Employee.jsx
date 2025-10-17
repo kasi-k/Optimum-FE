@@ -11,11 +11,19 @@ import AddEmployee from "./AddEmployee";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { API } from "../../../Constant";
+import Edit_Profile from "../../dashboard/profile/Edit_Profile";
 
 const itemsPerPage = 10;
 
 const Employee = () => {
   const [employees, setEmployees] = useState([]);
+  const [editModal, setEditModal] = useState(false);
+
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
+
+  // ...
+
+
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -53,8 +61,6 @@ const Employee = () => {
     fetchEmployees();
     // eslint-disable-next-line
   }, [currentPage, searchTerm, filterParams, addEmployee]);
-
-  
 
   return (
     <>
@@ -117,7 +123,11 @@ const Employee = () => {
                   <td>{data.status}</td>
                   <td className="pl-4 p-2.5 rounded-r-lg space-x-3">
                     <button className="cursor-pointer bg-blue-200 w-fit rounded-sm py-1.5 px-1.5">
-                      <Pencil size={16} className="text-blue-600" />
+                      <Pencil
+                        onClick={() =>{   setSelectedEmployeeId(data.employee_id);  setEditModal(true)}}
+                        size={16}
+                        className="text-blue-600"
+                      />
                     </button>
                     <button className="cursor-pointer bg-[#BAFFBA] text-green-600 w-fit rounded-sm py-1.5 px-1.5">
                       <LuEye size={16} />
@@ -147,6 +157,13 @@ const Employee = () => {
             setAddEmployee(false);
             // fetchEmployees();
           }}
+        />
+      )}
+      {editModal && (
+        <Edit_Profile
+          onclose={() => setEditModal(false)}
+          onSuccess={fetchEmployees}
+          employeeId={selectedEmployeeId}
         />
       )}
     </>

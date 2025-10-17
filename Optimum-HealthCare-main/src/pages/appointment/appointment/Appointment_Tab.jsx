@@ -78,6 +78,12 @@ const Appointment_Tab = () => {
     setSelectedAppointment(appointment);
     setEditModalOpen(true);
   };
+  const STATUS_COLORS = {
+    Pending: " text-yellow-500",
+    Completed: " text-green-800",
+    Confirmed: " text-blue-800",
+    Cancelled: " text-red-800",
+  };
 
   return (
     <>
@@ -112,84 +118,95 @@ const Appointment_Tab = () => {
           </div>
 
           <div className="font-layout-font overflow-auto no-scrollbar">
-            <table className="w-full xl:h-fit h-[703px] dark:text-white whitespace-nowrap">
-              <thead>
-                <tr className="font-semibold text-sm dark:bg-layout-dark bg-layout-light border-b-2 dark:border-overall_bg-dark border-overall_bg-light">
-                  <th className="p-3.5 rounded-l-lg">S.no</th>
-                  {[
-                    "Token No",
-                    "Name",
-                    "Phone Number",
-                    "Date",
-                    "Slot",
-                    "Status",
-                  ].map((heading) => (
-                    <th key={heading} className="p-5">
-                      <h1 className="flex items-center justify-center gap-1">
-                        {heading} <HiArrowsUpDown className="dark:text-white" />
-                      </h1>
-                    </th>
-                  ))}
-                  <th className="pr-2 rounded-r-lg">Action</th>
-                </tr>
-              </thead>
+            <div className="font-layout-font overflow-auto no-scrollbar">
+              <table className="w-full xl:h-fit h-[703px] dark:text-white whitespace-nowrap">
+                <thead>
+                  <tr className="font-semibold text-sm dark:bg-layout-dark bg-layout-light border-b-2 dark:border-overall_bg-dark border-overall_bg-light">
+                    <th className="p-3.5 rounded-l-lg">S.no</th>
+                    {[
+                      "Token ID",
+                      "Patient ID",
+                      "Patient Name",
+                      "Age",
+                      "Treatment",
+                      "Surgeon",
+                      "Coordinator",
+                      "Status",
+                    ].map((heading) => (
+                      <th key={heading} className="p-5">
+                        <h1 className="flex items-center justify-center gap-1">
+                          {heading}
+                        </h1>
+                      </th>
+                    ))}
+                    <th className="pr-2 rounded-r-lg">Action</th>
+                  </tr>
+                </thead>
 
-              <tbody className="dark:bg-layout-dark bg-layout-light rounded-2xl dark:text-gray-200 text-gray-600 cursor-default">
-                {appointments.length > 0 ? (
-                  appointments.map((data, index) => (
-                    <tr
-                      key={index}
-                      className="border-b-2 dark:border-overall_bg-dark border-overall_bg-light text-center"
-                    >
-                      <td className="rounded-l-lg">{index + 1}</td>
-                      <td>{data.token_id}</td>
-                      <td>{data.name}</td>
-                      <td>{data.phone}</td>
-                      <td>{formatDate(data.date)}</td>
-                      <td>{data.slot}</td>
-                      <td
-                        className={`first-letter:uppercase ${
-                          data.status === "pending"
-                            ? "text-yellow-500"
-                            : data.status === "confirmed"
-                            ? "text-green-600"
-                            : data.status === "cancelled"
-                            ? "text-red-600"
-                            : data.status === "completed"
-                            ? "text-purple-500"
-                            : "text-gray-600"
-                        }`}
+                <tbody className="dark:bg-layout-dark bg-layout-light rounded-2xl dark:text-gray-200 text-gray-600 cursor-default">
+                  {appointments.length > 0 ? (
+                    appointments.map((data, index) => (
+                      <tr
+                        key={index}
+                        className="border-b-2 dark:border-overall_bg-dark border-overall_bg-light text-center"
                       >
-                        {data.status}
-                      </td>
-                      <td className="space-x-2 p-2.5 rounded-r-lg">
-                        <button
-                          className="cursor-pointer bg-blue-200 p-1.5 rounded-sm"
-                          onClick={() => handleEdit(data)}
-                        >
-                          <Pencil size={16} className="text-blue-600" />
-                        </button>
-                        <button
-                          className="cursor-pointer bg-green-200 p-1.5 rounded-sm"
-                          onClick={() => {
-                            setSelectedStatus(data.status);
-                            setIsView(true);
-                          }}
-                        >
-                          <LuEye size={16} className="text-green-600" />
-                        </button>
+                        <td className="rounded-l-lg">{index + 1}</td>
+                        <td>{data.token_id}</td>
+                        <td>
+                          {" "}
+                          {data.patient_type === "OPD"
+                            ? data.opd_number
+                            : data.ipd_number}
+                        </td>
+
+                        <td>{data.patient_name}</td>
+                        <td>{data.age}</td>
+                        <td>{data.treatment}</td>
+                        <td>{data.surgeon_name}</td>
+                        <td>{data.medical_coordinator}</td>
+                        <td>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                              STATUS_COLORS[data.status] ||
+                              "bg-gray-200 text-gray-800"
+                            }`}
+                          >
+                            {data.status || "-"}
+                          </span>
+                        </td>
+
+                        <td className="space-x-2 p-2.5 rounded-r-lg">
+                          <button
+                            className="cursor-pointer bg-blue-200 p-1.5 rounded-sm"
+                            onClick={() => handleEdit(data)}
+                          >
+                            <Pencil size={16} className="text-blue-600" />
+                          </button>
+                          <button
+                            className="cursor-pointer bg-green-200 p-1.5 rounded-sm"
+                            onClick={() => {
+                              setSelectedAppointment(data);
+                              setIsView(true);
+                            }}
+                          >
+                            <LuEye size={16} className="text-green-600" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan="13"
+                        className="text-center py-10 text-gray-500"
+                      >
+                        No appointments found.
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="8" className="text-center py-10 text-gray-500">
-                      No matching results found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <Pagination
@@ -211,6 +228,7 @@ const Appointment_Tab = () => {
             <CreateAppointment
               onclose={() => setCreateAppointment(false)}
               refresh={fetchAppointments}
+              apiEndpoint="add"
             />
           )}
 
@@ -222,7 +240,12 @@ const Appointment_Tab = () => {
             <Reschedule onclose={() => setIsModalOpen(false)} />
           )}
 
-          {isView && <ViewAppoinment onclose={() => setIsView(false)} />}
+          {isView && (
+            <ViewAppoinment
+              onclose={() => setIsView(false)}
+              data={selectedAppointment}
+            />
+          )}
         </div>
       )}
 

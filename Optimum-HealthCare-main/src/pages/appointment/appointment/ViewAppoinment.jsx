@@ -5,10 +5,11 @@ import OPD_Details from "../patients/OPD_Details";
 import domtoimage from "dom-to-image-more";
 import { PatientsData } from "../../../component/Data";
 
-const ViewAppoinment = ({ onclose }) => {
+const ViewAppoinment = ({ onclose, data }) => {
   const [iscompleted, setIscompleted] = useState(true);
   const [isCreateInvoice, setIsCreateInvoice] = useState(false);
   const [isview, setIsview] = useState(true);
+  const [invoiceData, setInvoiceData] = useState(null);
   const navigate = useNavigate();
 
   const handleCreateInvoiceClick = () => {
@@ -68,7 +69,7 @@ const ViewAppoinment = ({ onclose }) => {
                 }}
                 className="m-2  border rounded-2xl overflow-y-auto no-scrollbar dark:bg-layout-dark bg-white"
               >
-                <OPD_Details patient={PatientsData[0]} />
+                <OPD_Details patient={data} />
               </div>
             </div>
             <div className="flex justify-end items-center gap-4 my-4 mx-6 text-sm font-normal">
@@ -80,21 +81,31 @@ const ViewAppoinment = ({ onclose }) => {
               </p>
               <button
                 onClick={handleDownload}
-                className="cursor-pointer  border border-select_layout-dark text-select_layout-dark  px-6 py-1.5 rounded-sm"
+                className="cursor-pointer border border-select_layout-dark text-select_layout-dark px-6 py-1.5 rounded-sm"
               >
                 Download
               </button>
-              <p
-                className="cursor-pointer bg-select_layout-dark px-6 py-1.5 rounded-sm"
-                onClick={handleCreateInvoiceClick}
-              >
-                Create Invoice
-              </p>
+
+              {/* Show Create Invoice button only if status is Completed */}
+              {data.status === "Completed" && (
+                <p
+                  className="cursor-pointer bg-select_layout-dark px-6 py-1.5 rounded-sm"
+                  onClick={() => {
+                    setIsview(false);
+                    handleCreateInvoiceClick;
+                    setIsCreateInvoice(true);
+                    // Optionally, you can also pass the data to the invoice modal here
+                    setInvoiceData(data); // <-- add a state for prefilled invoice data
+                  }}
+                >
+                  Create Invoice
+                </p>
+              )}
             </div>
           </>
         )}
 
-        {isCreateInvoice && (
+        {isCreateInvoice && invoiceData && (
           <>
             <p
               className="grid place-self-end -mx-4 -my-4 dark:bg-layout-dark bg-layout-light shadow-sm py-2.5 px-2.5 rounded-full"
@@ -113,6 +124,7 @@ const ViewAppoinment = ({ onclose }) => {
                     <input
                       type="text"
                       className="p-2 border rounded-md w-52 dark:border-layout_text-dark border-layout_text-light bg-transparent text-sm"
+                      defaultValue={invoiceData.patient_name} // prefilled
                     />
                   </div>
                   <div className="flex gap-2 col-span-2 justify-between items-center">
@@ -120,6 +132,7 @@ const ViewAppoinment = ({ onclose }) => {
                     <input
                       type="text"
                       className="p-2 border rounded-md w-52 dark:border-layout_text-dark border-layout_text-light bg-transparent text-sm"
+                      defaultValue={invoiceData.coordinator_number} // prefilled
                     />
                   </div>
                   <div className="flex gap-2 col-span-2 justify-between items-center">
@@ -127,20 +140,24 @@ const ViewAppoinment = ({ onclose }) => {
                     <input
                       type="date"
                       className="p-2 border rounded-md w-52 dark:border-layout_text-dark border-layout_text-light bg-transparent text-sm"
+                      defaultValue={invoiceData.op_date} // prefilled
                     />
                   </div>
+
                   <div className="flex gap-2 col-span-2 justify-between items-center">
                     <label className="font-medium">Slot</label>
                     <input
-                      type="number"
+                      type="time"
                       className="p-2 border rounded-md w-52 dark:border-layout_text-dark border-layout_text-light bg-transparent text-sm"
+                      defaultValue={invoiceData.op_time} // prefilled
                     />
                   </div>
                   <div className="flex gap-2 col-span-2 justify-between items-center">
                     <label className="font-medium">Doctor</label>
                     <input
-                      type="number"
+                      type="text"
                       className="p-2 border rounded-md w-52 dark:border-layout_text-dark border-layout_text-light bg-transparent text-sm"
+                      defaultValue={invoiceData.surgeon_name} // prefilled
                     />
                   </div>
                 </form>

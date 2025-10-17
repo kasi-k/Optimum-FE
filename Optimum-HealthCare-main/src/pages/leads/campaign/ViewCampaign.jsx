@@ -8,7 +8,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { API, formatDate } from "../../../Constant";
 import AddLeads from "./AddLeads";
-import AddAppointments from "./AddAppointments";
+import CreateAppointment from "../../appointment/appointment/CreateAppointment";
 
 const ViewCampaign = () => {
   const [isOpenLeads, setIsOpenLeads] = useState(false);
@@ -171,10 +171,11 @@ const ViewCampaign = () => {
         />
       )}
       {isOpenAddAppointments && (
-        <AddAppointments
+        <CreateAppointment
           onclose={() => setIsOpenAddAppointments(false)}
           campaignId={campaignId1}
           fetchCampaignDetails={fetchCampaignDetails}
+          apiEndpoint="create"
         />
       )}
     </>

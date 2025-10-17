@@ -134,7 +134,7 @@ const Profile = () => {
 
       {/* Modals */}
       {editProfile && <Edit_Profile onclose={() => setEditProfile(false)} employeeId={employee_id} onSuccess={fetchProfile} />}
-      {changePassword && <Change_Password onclose={() => setChangePassword(false)} />}
+      {changePassword && <Change_Password onclose={() => setChangePassword(false)} employeeId={employee_id} />}
     </div>
   );
 };

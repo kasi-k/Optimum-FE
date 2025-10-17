@@ -32,7 +32,7 @@ const AutoLogout = () => {
             return prev - 1;
           });
         }, 1000);
-      }, 5 * 60 * 1000); // 5 minutes inactivity
+      }, 30 * 60 * 1000); // 5 minutes inactivity
     };
 
     window.addEventListener("mousemove", resetTimer);

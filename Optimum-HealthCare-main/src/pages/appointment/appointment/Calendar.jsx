@@ -192,7 +192,7 @@ const Calendar = ({ onclose }) => {
                 {/* Appointment Info */}
                 <div className="flex-1 px-2">
                   <p className="font-semibold">{appt.name}</p>
-                  <p className="text-sm text-gray-400">Consultant: {appt.doctor_name}</p>
+                  <p className="text-sm text-gray-400">Consultant: {appt.surgeon_name}</p>
                 </div>
 
                 {/* Date + Time + Status */}

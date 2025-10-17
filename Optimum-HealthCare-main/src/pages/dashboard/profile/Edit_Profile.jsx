@@ -16,14 +16,14 @@ const schema = yup.object().shape({
   phone: yup.string().required("Phone is required"),
   email: yup.string().email("Invalid email").required("Email is required"),
   department: yup.string().required("Department is required"),
-  rpperson: yup.string().required("Reporting Person is required"),
-  language: yup.string().required("Language is required"),
+  rpperson: yup.string(),
+  language: yup.string(),
 });
 
-const Edit_Profile = ({ onclose, employeeId,onSuccess }) => {
+const Edit_Profile = ({ onclose, employeeId, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [initialData, setInitialData] = useState(null);
-  
+  const [employees, setEmployees] = useState([]); // All employees list
 
   const {
     register,
@@ -34,27 +34,37 @@ const Edit_Profile = ({ onclose, employeeId,onSuccess }) => {
     resolver: yupResolver(schema),
   });
 
-  // Fetch employee data to prefill form
+  // Fetch employee data
   const fetchEmployee = async () => {
     try {
       const res = await axios.get(`${API}/employee/getemployee/${employeeId}`);
-          let data = res.data.data;
+      let data = res.data.data;
 
-    // Convert dob to yyyy-MM-dd format for <input type="date" />
-    if (data.dob) {
-      const date = new Date(data.dob);
-      data.dob = date.toISOString().split("T")[0]; // "yyyy-MM-dd"
-    }
-      setInitialData(res.data.data);
-      reset(res.data.data); // populate form
+      if (data.dob) {
+        data.dob = new Date(data.dob).toISOString().split("T")[0];
+      }
+
+      setInitialData(data);
+      reset(data);
     } catch (err) {
       console.error("Failed to fetch employee:", err);
       toast.error("Failed to load employee data");
     }
   };
 
+  // Fetch all employees for Reporting Person dropdown
+  const fetchAllEmployees = async () => {
+    try {
+      const res = await axios.get(`${API}/employee/getallemployees`);
+      setEmployees(res.data.data);
+    } catch (err) {
+      console.error("Failed to fetch employees:", err);
+    }
+  };
+
   useEffect(() => {
     fetchEmployee();
+    fetchAllEmployees();
   }, [employeeId]);
 
   const onSubmit = async (data) => {
@@ -76,6 +86,8 @@ const Edit_Profile = ({ onclose, employeeId,onSuccess }) => {
     "p-2 rounded-md w-full bg-transparent border border-gray-600 dark:border-gray-500 text-black dark:text-white placeholder:text-gray-400";
 
   if (!initialData) return <p className="text-center py-10">Loading...</p>;
+
+  const currentUserId = initialData._id;
 
   return (
     <div className="font-layout-font fixed inset-0 grid z-20 justify-center items-center backdrop-blur-xs">
@@ -109,7 +121,7 @@ const Edit_Profile = ({ onclose, employeeId,onSuccess }) => {
             )}
           </div>
 
-          {/* Date of Birth */}
+          {/* DOB */}
           <div className="flex flex-col gap-1">
             <label className="font-medium">Date of Birth</label>
             <input type="date" {...register("dob")} className={inputClass} />
@@ -122,10 +134,10 @@ const Edit_Profile = ({ onclose, employeeId,onSuccess }) => {
           <div className="flex flex-col gap-1">
             <label className="font-medium">Gender</label>
             <select {...register("gender")} className={inputClass}>
-              <option value="">Select gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
+              <option className="bg-layout-dark" value="">Select gender</option>
+              <option className="bg-layout-dark" value="Male">Male</option>
+              <option className="bg-layout-dark" value="Female">Female</option>
+              <option className="bg-layout-dark" value="Other">Other</option>
             </select>
             {errors.gender && (
               <span className="text-red-500 text-xs">{errors.gender.message}</span>
@@ -191,12 +203,16 @@ const Edit_Profile = ({ onclose, employeeId,onSuccess }) => {
           {/* Reporting Person */}
           <div className="flex flex-col gap-1">
             <label className="font-medium">Reporting Person</label>
-            <input
-              type="text"
-              placeholder="Enter reporting person"
-              {...register("rpperson")}
-              className={inputClass}
-            />
+            <select {...register("rpperson")} className={inputClass}>
+              <option value="">Select Reporting Person</option>
+              {employees
+                .filter((emp) => emp._id !== currentUserId) // exclude current user
+                .map((emp) => (
+                  <option className="bg-layout-dark" key={emp.employee_id} value={emp.employee_id}>
+                    {emp.name}
+                  </option>
+                ))}
+            </select>
             {errors.rpperson && (
               <span className="text-red-500 text-xs">{errors.rpperson.message}</span>
             )}
