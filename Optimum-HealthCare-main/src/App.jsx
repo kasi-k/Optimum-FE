@@ -2,11 +2,7 @@ import React from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Layout from "./pages/layout/Layout";
 import Login from "./pages/auth/Login";
-import SignUp from "./pages/auth/SignUp";
-import Dashboard from "./pages/dashboard/Dashboard";
-import ForgotPassword from "./pages/auth/ForgotPassword";
-import Gmb from "./pages/gmb/GMB";
-import EditGmbSet from "./pages/gmb/EditGmbSet";
+
 import Leads from "./pages/leads/Leads";
 import Appointment from "./pages/appointment/Appointment";
 import Finance from "./pages/finance/Finance";
@@ -14,10 +10,7 @@ import Report from "./pages/report/Report";
 import Settings from "./pages/settings/Settings";
 import AddRoleAccess from "./pages/settings/roles/AddRoleAcess";
 import EditRoleAccess from "./pages/settings/roles/EditRoleAcess";
-import SubscriptionPlans from "./pages/subscription/SubscriptionPlan";
-import Cms from "./pages/cms/Cms";
-import ViewBlog from "./pages/cms/Blogs/ViewBlogs";
-import EditBlogs from "./pages/cms/Blogs/EditBlogs";
+
 import ViewCampaign from "./pages/leads/campaign/ViewCampaign";
 import ViewLeads from "./pages/leads/leads/ViewLeads";
 import Invoice from "./pages/appointment/appointment/Invoice";
@@ -81,7 +74,7 @@ const AppContent = () => {
           </Route>
           <Route path="/hr" element={<Hr />} />
           <Route path="/finance" element={<Finance />} />
-          <Route path="/editgmb" element={<EditGmbSet />} />
+          {/* <Route path="/editgmb" element={<EditGmbSet />} /> */}
           <Route path="/leads">
             <Route index element={<Leads />} />
             <Route path="viewcampaign">
