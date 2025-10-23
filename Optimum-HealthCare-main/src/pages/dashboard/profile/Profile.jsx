@@ -13,10 +13,12 @@ const Profile = () => {
   const navigate = useNavigate();
   const [editProfile, setEditProfile] = useState(false);
   const [changePassword, setChangePassword] = useState(false);
+  const [rpperson, setRpperson] = useState(null)
   const [profileData, setProfileData] = useState(null);
 
   const user = JSON.parse(localStorage.getItem("employee")); // logged-in user
   const employee_id = user.employee_id;
+
 
   // Fields to display in the profile info grid
   const profileFields = [
@@ -55,6 +57,7 @@ const Profile = () => {
     try {
       const res = await axios.get(`${API}/employee/getemployee/${employee_id}`);
       setProfileData(res.data.data);
+      setRpperson(res.data.data.rpperson)
     } catch (err) {
       console.error("Failed to fetch profile:", err);
     }
@@ -66,6 +69,7 @@ const Profile = () => {
 
   if (!profileData)
     return <p className="text-center py-10">Loading profile...</p>;
+
 
   return (
     <div>
@@ -128,7 +132,7 @@ const Profile = () => {
 
         {/* Right WFH Leave Component */}
         <div className="lg:col-span-7 md:grid-cols-1 dark:bg-layout-dark bg-layout-light h-fit px-4 py-2 rounded-xl dark:text-white text-black">
-          <WFH_Leave />
+          <WFH_Leave  employeeId={employee_id} reportingPerson={rpperson} />
         </div>
       </div>
 

@@ -2,9 +2,14 @@ import { useState } from "react";
 import { ClipboardPenLine } from "lucide-react";
 import Apply_Leave from "../Apply_Leave";
 import Apply_WFH from "../Apply_WFH";
-const WFH_Leave=()=> {
+const WFH_Leave=({employeeId ,reportingPerson})=> {
   const [activeTab, setActiveTab] = useState("leave"); // leave | wfh
   const [applyModal, setApplyModal] = useState(false);
+
+  console.log(employeeId);
+  console.log(reportingPerson);
+  
+  
 
 const leaves = [
   {
@@ -164,9 +169,9 @@ const wfhData = [
 
       {applyModal &&
         (activeTab === "leave" ? (
-          <Apply_Leave onclose={() => setApplyModal(false)} />
+          <Apply_Leave onclose={() => setApplyModal(false)}/>
         ) : (
-          <Apply_WFH onclose={() => setApplyModal(false)} />
+          <Apply_WFH onclose={() => setApplyModal(false)} employeeId={employeeId} reportingPerson={reportingPerson} />
         ))}
     </div>
   );
