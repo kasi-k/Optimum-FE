@@ -67,10 +67,19 @@ const EditAppointment = ({ onclose, appointment, onSuccess }) => {
   );
   const [patientType, setPatientType] = useState(appointment.patient_type);
 
+  const [doctors, setDoctors] = useState([]);
+  const [hospitals, setHospitals] = useState([]);
+  const [coordinators, setCoordinators] = useState([]);
+  const [doctorSearch, setDoctorSearch] = useState("");
+  const [hospitalSearch, setHospitalSearch] = useState("");
+  const [coordinatorSearch, setCoordinatorSearch] = useState("");
+
   const {
     register,
     handleSubmit,
     setValue,
+    watch,
+
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
@@ -78,18 +87,66 @@ const EditAppointment = ({ onclose, appointment, onSuccess }) => {
   });
 
   useEffect(() => {
-    // Pre-fill all form fields when appointment changes
-    Object.keys(appointment).forEach((key) => {
-      setValue(key, appointment[key] || "");
-    });
+    // Pre-fill form fields
+    Object.keys(appointment).forEach((key) =>
+      setValue(key, appointment[key] || "")
+    );
     setPatientType(appointment.patient_type);
     setConsultationType(appointment.consultation_type || "Online");
+    fetchDropdownData();
   }, [appointment, setValue]);
+
+  const fetchDropdownData = async () => {
+    try {
+      const [doctorRes, hospitalRes, coordinatorRes] = await Promise.all([
+        axios.get(`${API}/doctor/getalldoctors`),
+        axios.get(`${API}/hospital/getallhospitals`),
+        axios.get(`${API}/employee/getallemployees`),
+      ]);
+      setDoctors(doctorRes.data.data || []);
+      setHospitals(hospitalRes.data.data || []);
+      setCoordinators(coordinatorRes.data.data || []);
+    } catch (err) {
+      toast.error("Failed to fetch dropdown data");
+    }
+  };
 
   const handleTypeChange = (type) => {
     setPatientType(type);
     setValue("patient_type", type);
   };
+
+  const handleHospitalChange = (id) => {
+    const selected = hospitals.find((h) => h._id === id);
+    if (selected) {
+      setValue("hospital_name", selected.hospital_name);
+      setValue("hospital_address", selected.address || "");
+    }
+  };
+  const selectedHospitalId =
+    hospitals.find((h) => h.hospital_name === watch("hospital_name"))?._id ||
+    "";
+
+  const handleCoordinatorChange = (id) => {
+    const selected = coordinators.find((c) => c._id === id);
+    if (selected) {
+      setValue("medical_coordinator", selected.name);
+      setValue("coordinator_number", selected.phone || "");
+    }
+  };
+  const selectedCoordinatorId =
+    coordinators.find((c) => c.name === watch("medical_coordinator"))?._id ||
+    "";
+
+  const handleDoctorChange = (id) => {
+    const selected = doctors.find((d) => d._id === id);
+    if (selected) {
+      setValue("surgeon_name", selected.doctor_name);
+    }
+  };
+
+  const selectedDoctorId =
+    doctors.find((d) => d.doctor_name === watch("surgeon_name"))?._id || "";
 
   const onSubmit = async (data) => {
     try {
@@ -98,15 +155,13 @@ const EditAppointment = ({ onclose, appointment, onSuccess }) => {
         ...data,
         consultation_type: patientType === "OPD" ? consultationType : null,
       };
-      const token_id = appointment.token_id;
-
       await axios.put(
-        `${API}/appointment/updateappointment/${token_id}`,
+        `${API}/appointment/updateappointment/${appointment.token_id}`,
         payload
       );
-      toast.success(`${patientType} updated successfully`);
+      toast.success("Appointment updated successfully");
       onclose();
-      onSuccess(); // refresh list
+      onSuccess();
     } catch (error) {
       toast.error(
         error.response?.data?.message || "Failed to update appointment"
@@ -146,11 +201,6 @@ const EditAppointment = ({ onclose, appointment, onSuccess }) => {
               <option value="OPD">OPD</option>
               <option value="IPD">IPD</option>
             </select>
-            {errors.patient_type && (
-              <p className="text-red-500 text-xs">
-                {errors.patient_type.message}
-              </p>
-            )}
           </div>
 
           {/* Patient Name */}
@@ -194,9 +244,6 @@ const EditAppointment = ({ onclose, appointment, onSuccess }) => {
               <option value="Female">Female</option>
               <option value="Other">Other</option>
             </select>
-            {errors.gender && (
-              <p className="text-red-500 text-xs">{errors.gender.message}</p>
-            )}
           </div>
 
           {/* Treatment */}
@@ -219,24 +266,40 @@ const EditAppointment = ({ onclose, appointment, onSuccess }) => {
             />
           </div>
 
-          {/* Surgeon */}
+          {/* Surgeon Dropdown */}
           <div>
             <label>Surgeon Name</label>
-            <input
-              {...register("surgeon_name")}
-              placeholder="Surgeon"
-              className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500"
-            />
+
+            <select
+              value={selectedDoctorId}
+              onChange={(e) => handleDoctorChange(e.target.value)}
+              className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white"
+            >
+              <option value="">Select Surgeon</option>
+              {doctors.map((doc) => (
+                <option key={doc._id} value={doc._id}>
+                  {doc.doctor_name}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Coordinator */}
+          {/* Coordinator Dropdown */}
           <div>
             <label>Coordinator</label>
-            <input
-              {...register("medical_coordinator")}
-              placeholder="Coordinator"
-              className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500"
-            />
+
+            <select
+              value={selectedCoordinatorId}
+              onChange={(e) => handleCoordinatorChange(e.target.value)}
+              className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white"
+            >
+              <option value="">Select Coordinator</option>
+              {coordinators.map((emp) => (
+                <option key={emp._id} value={emp._id}>
+                  {emp.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Coordinator Number */}
@@ -253,7 +316,7 @@ const EditAppointment = ({ onclose, appointment, onSuccess }) => {
           {patientType === "OPD" && (
             <>
               <div>
-                <label>Consultation</label>
+                <label>Consultation Type</label>
                 <select
                   {...register("consultation_type")}
                   value={consultationType}
@@ -264,15 +327,25 @@ const EditAppointment = ({ onclose, appointment, onSuccess }) => {
                   <option value="Office">Office</option>
                 </select>
               </div>
+
+              {/* Hospital fields only if Office */}
               {consultationType === "Office" && (
                 <>
                   <div>
                     <label>Hospital Name</label>
-                    <input
-                      {...register("hospital_name")}
-                      placeholder="Hospital Name"
-                      className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500"
-                    />
+
+                    <select
+                      value={selectedHospitalId}
+                      onChange={(e) => handleHospitalChange(e.target.value)}
+                      className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white"
+                    >
+                      <option value="">Select Hospital</option>
+                      {hospitals.map((h) => (
+                        <option key={h._id} value={h._id}>
+                          {h.hospital_name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label>Hospital Address</label>
@@ -284,6 +357,7 @@ const EditAppointment = ({ onclose, appointment, onSuccess }) => {
                   </div>
                 </>
               )}
+
               <div>
                 <label>OP Time</label>
                 <input
@@ -332,11 +406,18 @@ const EditAppointment = ({ onclose, appointment, onSuccess }) => {
               </div>
               <div>
                 <label>Hospital Name</label>
-                <input
-                  {...register("hospital_name")}
-                  placeholder="Hospital Name"
-                  className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500"
-                />
+                <select
+                  value={selectedHospitalId}
+                  onChange={(e) => handleHospitalChange(e.target.value)}
+                  className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white"
+                >
+                  <option value="">Select Hospital</option>
+                  {hospitals.map((h) => (
+                    <option key={h._id} value={h._id}>
+                      {h.hospital_name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label>Hospital Address</label>
@@ -380,6 +461,7 @@ const EditAppointment = ({ onclose, appointment, onSuccess }) => {
               )}
             </select>
           </div>
+
           <div>
             <label>Status</label>
             <select
@@ -390,11 +472,8 @@ const EditAppointment = ({ onclose, appointment, onSuccess }) => {
               <option value="Confirmed">Confirmed</option>
               <option value="Pending">Pending</option>
               <option value="Completed">Completed</option>
-              <option value="Cancelled">cancelled</option>
+              <option value="Cancelled">Cancelled</option>
             </select>
-            {errors.status && (
-              <p className="text-red-500 text-xs">{errors.status.message}</p>
-            )}
           </div>
 
           {/* Buttons */}

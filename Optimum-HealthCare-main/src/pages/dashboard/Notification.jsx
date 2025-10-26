@@ -101,7 +101,7 @@ const Notification = ({ onclose, employeeId, onUpdateUnread }) => {
           </div>
         </div>
 
-        <div className="h-[670px] no-scrollbar overflow-y-auto">
+        <div className="h-11/12 no-scrollbar overflow-y-auto">
           {notifications.length > 0 ? (
             notifications.map((n) => (
               <div

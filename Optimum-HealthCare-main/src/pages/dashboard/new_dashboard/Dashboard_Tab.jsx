@@ -1,40 +1,27 @@
-import React, { useState } from "react";
+import React from "react";
 import NavBar from "../../../component/NavBar";
 import Admin_Dashboard from "../new_dashboard/Admin_Dashboard";
 import Employee_Dashboard from "../new_dashboard/Employee_Dashboard";
 
 const Dashboard_Tab = () => {
-  const [activeTab, setActiveTab] = useState("1");
+  const user = JSON.parse(localStorage.getItem("employee")); // get logged-in user
+  const roleName = user?.role?.role_name?.toLowerCase(); // "admin", "doctor", etc.
 
   return (
-    <>
-      <NavBar
-        title="Dashboard"
-        pagetitle={activeTab === "1" ? "Admin Dashboard" : activeTab === "2" ? "Employee Dashboard" : ""}
-      />
-      <div className="cursor-pointer flex justify-between items-center">
-        <div className="font-layout-font flex gap-2 py-2 dark:text-white">
-          <p
-            className={`flex gap-2 items-center px-4 py-3 font-semibold rounded-sm text-sm ${
-              activeTab === "1" ? "dark:bg-layout-dark bg-layout-light" : ""
-            }`}
-            onClick={() => setActiveTab("1")}
-          >
-            Admin
-          </p>
-          <p
-            className={`flex gap-2 items-center px-4 py-3 font-semibold rounded-sm text-sm ${
-              activeTab === "2" ? "dark:bg-layout-dark bg-layout-light" : ""
-            }`}
-            onClick={() => setActiveTab("2")}
-          >
-            Employee
-          </p>
-        </div>
+    <div className="flex flex-col h-full w-full">
+      {/* Fixed Navbar */}
+      <div className="flex-shrink-0">
+        <NavBar
+          title="Dashboard"
+          pagetitle={roleName === "admin" ? "Admin Dashboard" : "Employee Dashboard"}
+        />
       </div>
 
-      {activeTab === "1" ? <Admin_Dashboard /> : activeTab === "2" ? <Employee_Dashboard /> : null}
-    </>
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-auto p-4 no-scrollbar">
+        {roleName === "admin" ? <Admin_Dashboard /> : <Employee_Dashboard />}
+      </div>
+    </div>
   );
 };
 

@@ -122,7 +122,7 @@ const Employee_Dashboard = () => {
   return (
     <div>
       {/* <NavBar title="Dashboard" pagetitle="Main Dashboard" /> */}
-      <div className="my-2 grid grid-cols-1 lg:grid-cols-9 gap-3">
+      <div className="my-2 grid grid-cols-1 lg:grid-cols-9 gap-3 ">
         <div className="lg:col-span-6 space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {statsData.map((stat, index) => (

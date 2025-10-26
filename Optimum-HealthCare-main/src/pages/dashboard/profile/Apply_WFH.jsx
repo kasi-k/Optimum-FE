@@ -33,8 +33,8 @@ const Apply_WFH = ({ onclose, employeeId, reportingPerson }) => {
         ...data,
         employee_id: employeeId,
         reportingPerson,
-        fromDate: new Date(data.fromDate).toISOString(),
-        toDate: new Date(data.toDate).toISOString(),
+        fromDate:data.fromDate,
+        toDate: data.toDate
       };
 
       const res = await axios.post(`${API}/wfh/apply`, payload);

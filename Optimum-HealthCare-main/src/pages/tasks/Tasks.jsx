@@ -6,7 +6,7 @@ import { TbFileExport } from "react-icons/tb";
 import Filter from "../../component/Filter";
 import { useSearch } from "../../component/SearchBar";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, File, Pencil } from "lucide-react";
+import { AlertTriangle, File } from "lucide-react";
 import { RiDeleteBinLine } from "react-icons/ri";
 import NavBar from "../../component/NavBar";
 import AddTasks from "./AddTasks";
@@ -24,44 +24,37 @@ const Tasks = () => {
   const [selectedTask, setSelectedTask] = useState(null);
 
   const { searchTerm } = useSearch();
-  const [filterParams, setFilterParams] = useState({
-    fromdate: "",
-    todate: "",
-  });
+  const [filterParams, setFilterParams] = useState({ fromdate: "", todate: "" });
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [deleteModal, setDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
-const [users, setUsers] = useState([]);
-
-useEffect(() => {
-  axios.get(`${API}/employee/getallemployees`)
-    .then(res => setUsers(res.data.data))
-    .catch(err => console.error(err));
-}, []);
+  const [users, setUsers] = useState([]);
 
   const itemsPerPage = 10;
   const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem("employee"));
 
   const statusColorMap = {
     doing: "font-bold text-blue-700",
     completed: "font-bold text-green-700",
     incomplete: "font-bold text-red-700",
   };
-  const user = JSON.parse(localStorage.getItem("employee"));
 
-  // ✅ Fetch Tasks from API
+  // Fetch all employees
+  useEffect(() => {
+    axios.get(`${API}/employee/getallemployees`)
+      .then(res => setUsers(res.data.data))
+      .catch(err => console.error(err));
+  }, []);
+
+  // Fetch all tasks
   const fetchTasks = async () => {
     setLoading(true);
     try {
       const res = await axios.get(`${API}/task/getalltasks`, {
-        params: {
-          role_name: user.role.role_name,
-          employee_id: user.employee_id,
-        },
+        params: { role_name: user.role.role_name, employee_id: user.employee_id },
       });
-      console.log(res);
-
       setTasks(res.data.data || []);
     } catch (err) {
       toast.error("Failed to fetch tasks");
@@ -72,9 +65,9 @@ useEffect(() => {
 
   useEffect(() => {
     fetchTasks();
-  }, [currentPage, searchTerm, filterParams]);
+  }, [currentPage, filterParams]);
 
-  // ✅ Delete hospital
+  // Delete task
   const handleDelete = async (id) => {
     try {
       await axios.delete(`${API}/task/deletetask/${id}`);
@@ -84,65 +77,75 @@ useEffect(() => {
       toast.error("Failed to delete task");
     }
   };
-  // Map IDs to names
-// const tasksWithNames = tasks.map(task => ({
-//   ...task,
-//   assigned_to_name: task.assigned_to
-//     .map(id => users.find(u => u.employee_id === id)?.name || id)
-//     .join(", ")
-// }));
-// Filter tasks first based on role and employee
-const filteredTasks = tasks.filter(task => {
-  if (user.role.role_name === "admin") return true; // Admin sees all
-  return task.assigned_to.includes(user.employee_id); // Employee sees only their tasks
-});
 
-const tasksWithNames = filteredTasks.map(task => {
-  let assignedNames = [];
+  // Filter tasks by role, assigned user, date, and search
+  const filteredTasks = tasks
+    // Filter by role/assigned
+    .filter(task => user.role.role_name === "admin" || task.assigned_to.includes(user.employee_id))
+    // Filter by created date if filterParams exist
+    .filter(task => {
+      if (!filterParams.fromdate && !filterParams.todate) return true;
+      const created = new Date(task.createdAt);
+      if (filterParams.fromdate && created < new Date(filterParams.fromdate)) return false;
+      if (filterParams.todate && created > new Date(filterParams.todate)) return false;
+      return true;
+    })
+    // Map assigned_to IDs to names
+    .map(task => {
+      let assignedNames = [];
+      if (user.role.role_name === "admin") {
+        assignedNames = task.assigned_to.map(id => users.find(u => u.employee_id === id)?.name || id);
+      } else {
+        assignedNames = task.assigned_to
+          .filter(id => id === user.employee_id)
+          .map(id => users.find(u => u.employee_id === id)?.name || id);
+      }
+      return { ...task, assigned_to_name: assignedNames.join(", ") };
+    })
+    // Search filter
+    .filter(task => {
+      if (!searchTerm) return true;
+      const term = searchTerm.toLowerCase();
+      return (
+        task.task_title?.toLowerCase().includes(term) ||
+        task.assigned_to_name?.toLowerCase().includes(term) ||
+        task.status?.toLowerCase().includes(term)
+      );
+    });
 
-  if (user.role.role_name === "admin") {
-    // Admin sees all assigned users
-    assignedNames = task.assigned_to
-      .map(id => users.find(u => u.employee_id === id)?.name || id);
-  } else {
-    // Employee sees only their own name
-    assignedNames = task.assigned_to
-      .filter(id => id === user.employee_id)
-      .map(id => users.find(u => u.employee_id === id)?.name || id);
-  }
+  // Pagination
+  const paginatedTasks = filteredTasks.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
-  return {
-    ...task,
-    assigned_to_name: assignedNames.join(", "),
-  };
-});
-
-
+  useEffect(() => {
+    setCurrentPage(1);
+    setTotalPages(Math.ceil(filteredTasks.length / itemsPerPage));
+  }, [searchTerm, filterParams, tasks, users]);
 
   return (
     <>
-      <div>
-        <NavBar title="Tasks" pagetitle="Tasks" />
-        <div className="font-layout-font flex justify-end items-center gap-2 pb-2">
-          <button
-            onClick={() => setAddTasks(true)}
-            className="cursor-pointer flex items-center dark:text-white gap-2 bg-select_layout-dark px-4 py-2 text-sm rounded-md"
-          >
-            <div className="relative w-6 h-6">
-              <File className="absolute  w-6 h-6" />
-              <AlertTriangle className="absolute left-1.5 top-2  w-3 h-3" />
-            </div>
-            <span>Add Task</span>
-          </button>
-
-          <p className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md">
-            <TbFileExport />
-            Export
-          </p>
-
-          <div className="cursor-pointer flex items-center gap-3 dark:text-white dark:bg-layout-dark bg-layout-light rounded-md">
-            <Filter onFilterChange={setFilterParams} />
+      <NavBar title="Tasks" pagetitle="Tasks" />
+      <div className="font-layout-font flex justify-end items-center gap-2 pb-2">
+        <button
+          onClick={() => setAddTasks(true)}
+          className="cursor-pointer flex items-center dark:text-white gap-2 bg-select_layout-dark px-4 py-2 text-sm rounded-md"
+        >
+          <div className="relative w-6 h-6">
+            <File className="absolute  w-6 h-6" />
+            <AlertTriangle className="absolute left-1.5 top-2  w-3 h-3" />
           </div>
+          <span>Add Task</span>
+        </button>
+
+        <p className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md">
+          <TbFileExport />
+          Export
+        </p>
+
+        <div className="cursor-pointer flex items-center gap-3 dark:text-white dark:bg-layout-dark bg-layout-light rounded-md">
+          <Filter onFilterChange={setFilterParams} />
         </div>
       </div>
 
@@ -151,15 +154,13 @@ const tasksWithNames = filteredTasks.map(task => {
           <thead>
             <tr className="font-semibold text-sm dark:bg-layout-dark bg-layout-light border-b-2 dark:border-overall_bg-dark border-overall_bg-light">
               <th className="p-3.5 rounded-l-lg">S.no</th>
-              {["Tasks", "Start Date", "Due Date", "Assigned to", "Status"].map(
-                (heading) => (
-                  <th key={heading} className="p-5">
-                    <h1 className="flex items-center justify-center gap-1">
-                      {heading} <HiArrowsUpDown className="dark:text-white" />
-                    </h1>
-                  </th>
-                )
-              )}
+              {["Tasks", "Start Date", "Due Date", "Assigned to", "Status"].map((heading) => (
+                <th key={heading} className="p-5">
+                  <h1 className="flex items-center justify-center gap-1">
+                    {heading} <HiArrowsUpDown className="dark:text-white" />
+                  </h1>
+                </th>
+              ))}
               <th className="pr-2 rounded-r-lg">Action</th>
             </tr>
           </thead>
@@ -170,58 +171,32 @@ const tasksWithNames = filteredTasks.map(task => {
                   Loading tasks...
                 </td>
               </tr>
-            ) : tasksWithNames.length > 0 ? (
-              tasksWithNames.map((data, index) => (
+            ) : paginatedTasks.length > 0 ? (
+              paginatedTasks.map((data, index) => (
                 <tr
                   className="border-b-2 dark:border-overall_bg-dark border-overall_bg-light text-center"
                   key={data._id}
                 >
-                  <td className="rounded-l-lg">
-                    {(currentPage - 1) * itemsPerPage + index + 1}
-                  </td>
+                  <td className="rounded-l-lg">{(currentPage - 1) * itemsPerPage + index + 1}</td>
                   <td>{data.task_title}</td>
                   <td>{formatDate(data.start_date)}</td>
                   <td>{formatDate(data.due_date)}</td>
-                  <td>
-             {data.assigned_to_name}
-                  </td>
+                  <td>{data.assigned_to_name}</td>
                   <td className="first-letter:capitalize">
-                    <span
-                      className={` px-2 py-1 rounded-full text-sm ${
-                        statusColorMap[data.status] || "text-gray-700"
-                      }`}
-                    >
+                    <span className={`px-2 py-1 rounded-full text-sm ${statusColorMap[data.status] || "text-gray-700"}`}>
                       {data.status}
                     </span>
                   </td>
 
-                  <td className="pl-4 p-2.5 rounded-r-lg">
+                  <td className="pl-4 p-2.5 rounded-r-lg space-x-2">
                     <button
                       className="cursor-pointer bg-[#BAFFBA] text-green-600 w-fit rounded-sm py-1.5 px-1.5"
-                      onClick={() =>
-                        navigate(`/tasks/viewtasks`, {
-                          state: {
-                            task: data,
-                          },
-                        })
-                      }
+                      onClick={() => navigate(`/tasks/viewtasks`, { state: { task: data } })}
                     >
                       <LuEye size={16} />
-                    </button>{" "}
-                    {/* <button
-                      className="cursor-pointer bg-blue-200 w-fit rounded-sm py-1.5 px-1.5"
-                      onClick={() => {
-                        setSelectedTask(data);
-                        setEdittasks(true);
-                      }}
-                    >
-                      <Pencil size={16} className="text-blue-600" />
-                    </button>{" "} */}
+                    </button>
                     <button
-                      onClick={() => {
-                        setDeleteId(data._id);
-                        setDeleteModal(true);
-                      }}
+                      onClick={() => { setDeleteId(data._id); setDeleteModal(true); }}
                       className="cursor-pointer bg-pink-200 text-red-500 w-fit rounded-sm py-1.5 px-1.5"
                     >
                       <RiDeleteBinLine size={16} />
@@ -241,26 +216,19 @@ const tasksWithNames = filteredTasks.map(task => {
       </div>
 
       <Pagination
-        totalItems={totalPages * itemsPerPage}
+        totalItems={filteredTasks.length}
         itemsPerPage={itemsPerPage}
         currentPage={currentPage}
         onPageChange={setCurrentPage}
       />
 
-      {addTasks && (
-        <AddTasks onclose={() => setAddTasks(false)} onSuccess={fetchTasks} />
-      )}
-      {edittasks && (
-        <EditTasks task={selectedTask} onclose={() => setEdittasks(false)} />
-      )}
+      {addTasks && <AddTasks onclose={() => setAddTasks(false)} onSuccess={fetchTasks} />}
+      {edittasks && <EditTasks task={selectedTask} onclose={() => setEdittasks(false)} />}
       {deleteModal && (
         <DeleteModal
           title="task"
           onclose={() => setDeleteModal(false)}
-          onConfirm={async () => {
-            await handleDelete(deleteId);
-            setDeleteModal(false);
-          }}
+          onConfirm={async () => { await handleDelete(deleteId); setDeleteModal(false); }}
         />
       )}
     </>

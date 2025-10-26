@@ -147,32 +147,40 @@ const ViewTasks = () => {
             </tr>
           </thead>
           <tbody className="dark:bg-layout-dark bg-layout-light rounded-2xl dark:text-gray-200 text-gray-600 cursor-default">
-            {[1, 2, 3, 4].map((num, index) => (
-              <tr
-                key={index}
-                className="border-b-2 text-sm dark:border-overall_bg-dark border-overall_bg-light text-center"
-              >
-                <td className="rounded-l-lg">
-                  <p>{num}</p>
-                </td>
-                <td>
-                  <p className="py-3">01.10.2005</p>
-                </td>
-                <td>
-                  <p>10:30 pm</p>
-                </td>
-                <td>
-                  <p>Priya</p>
-                </td>
-                <td>
-                  <p>Area</p>
-                </td>
+            {taskData?.comments && taskData.comments.length > 0 ? (
+              taskData.comments.map((comment, index) => (
+                <tr
+                  key={index}
+                  className="border-b-2 text-sm dark:border-overall_bg-dark border-overall_bg-light text-center"
+                >
+                  <td className="rounded-l-lg">
+                    <p>{index + 1}</p>
+                  </td>
+                  <td>
+                    <p className="py-3">{formatDate(comment.date) || "N/A"}</p>
+                  </td>
+                  <td>
+                    <p>{comment.time || "N/A"}</p>
+                  </td>
+                  <td>
+                    <p>{comment.commented_by || "N/A"}</p>
+                  </td>
+                  <td>
+                    <p>{comment.comment || "N/A"}</p>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="7" className="text-center py-10 text-gray-500">No Comments</td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
-      {/* {comments && <AddComments onclose={() => setComments(false)}  task={taskData}/>} */}
+      {comments && (
+        <AddComments onclose={() => setComments(false)} task={taskData} />
+      )}
     </div>
   );
 };

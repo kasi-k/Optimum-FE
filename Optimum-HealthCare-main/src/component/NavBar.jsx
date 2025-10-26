@@ -62,7 +62,7 @@ const NavBar = ({ pagetitle, title }) => {
 
   return (
     <>
-      <div className="relative">
+      <div className="relative ">
         <div className="font-layout-font flex-wrap flex justify-between items-center text-sm my-1.5 dark:text-white overflow-auto no-scrollbar">
           {/* Page Title */}
           <div className="mx-2 space-y-1">

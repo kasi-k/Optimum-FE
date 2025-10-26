@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { IoClose } from "react-icons/io5";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -63,19 +63,67 @@ const CreateAppointment = ({ onclose, campaignId, apiEndpoint }) => {
   const [loading, setLoading] = useState(false);
   const [consultationType, setConsultationType] = useState("Online");
   const [patientType, setPatientType] = useState("OPD");
+  const [doctors, setDoctors] = useState([]);
+  const [hospitals, setHospitals] = useState([]);
+  const [coordinators, setCoordinators] = useState([]);
 
   const {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
   });
 
+  // Fetch dropdown data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [doctorRes, hospitalRes, coordinatorRes] = await Promise.all([
+          axios.get(`${API}/doctor/getalldoctors`),
+          axios.get(`${API}/hospital/getallhospitals`),
+          axios.get(`${API}/employee/getallemployees`),
+        ]);
+    
+
+        setDoctors(doctorRes.data.data || []);
+        setHospitals(hospitalRes.data.data || []);
+        setCoordinators(coordinatorRes.data.data || []);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+    fetchData();
+  }, []);
+
   const handleTypeChange = (type) => {
     setPatientType(type);
     setValue("patient_type", type);
+  };
+
+  const handleHospitalSelect = (id) => {
+    const selected = hospitals.find((h) => h._id === id);
+    if (selected) {
+      setValue("hospital_name", selected.hospital_name);
+      setValue("hospital_address", selected.address || "");
+    }
+  };
+
+  const handleCoordinatorSelect = (id) => {
+    const selected = coordinators.find((c) => c._id === id);
+    if (selected) {
+      setValue("medical_coordinator", selected.name);
+      setValue("coordinator_number", selected.phone || "");
+    }
+  };
+
+  const handleDoctorSelect = (id) => {
+    const selected = doctors.find((d) => d._id === id);
+    if (selected) {
+      setValue("surgeon_name", selected.doctor_name);
+    }
   };
 
   const onSubmit = async (data) => {
@@ -116,7 +164,7 @@ const CreateAppointment = ({ onclose, campaignId, apiEndpoint }) => {
           onSubmit={handleSubmit(onSubmit)}
           className="grid grid-cols-3 gap-4"
         >
-          {/* Row 1 */}
+          {/* Patient Type */}
           <div>
             <label>Patient Type</label>
             <select
@@ -135,6 +183,7 @@ const CreateAppointment = ({ onclose, campaignId, apiEndpoint }) => {
             )}
           </div>
 
+          {/* Patient Info */}
           <div>
             <label>Patient Name</label>
             <input
@@ -162,7 +211,7 @@ const CreateAppointment = ({ onclose, campaignId, apiEndpoint }) => {
             )}
           </div>
 
-          {/* Row 2 */}
+          {/* Gender */}
           <div>
             <label>Gender</label>
             <select
@@ -179,11 +228,12 @@ const CreateAppointment = ({ onclose, campaignId, apiEndpoint }) => {
             )}
           </div>
 
+          {/* Treatment */}
           <div>
             <label>Treatment</label>
             <input
               {...register("treatment")}
-              placeholder="Treatment type"
+              placeholder="Treatment"
               className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500"
             />
           </div>
@@ -197,22 +247,45 @@ const CreateAppointment = ({ onclose, campaignId, apiEndpoint }) => {
             />
           </div>
 
-          {/* Row 3 */}
+          {/* Surgeon Dropdown */}
           <div>
-            <label>Surgeon Name</label>
+            <label>Surgeon</label>
+            <select
+              onChange={(e) => handleDoctorSelect(e.target.value)}
+              className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white"
+            >
+              <option value="">Select Surgeon</option>
+              {doctors.map((doc) => (
+                <option key={doc._id} value={doc._id}>
+                  {doc.doctor_name}
+                </option>
+              ))}
+            </select>
             <input
               {...register("surgeon_name")}
-              placeholder="Surgeon"
-              className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500"
+              placeholder="Surgeon Name"
+              className="hidden"
             />
           </div>
 
+          {/* Coordinator Dropdown */}
           <div>
             <label>Coordinator</label>
+            <select
+              onChange={(e) => handleCoordinatorSelect(e.target.value)}
+              className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white"
+            >
+              <option value="">Select Coordinator</option>
+              {coordinators.map((emp) => (
+                <option key={emp._id} value={emp._id}>
+                  {emp.name}
+                </option>
+              ))}
+            </select>
             <input
               {...register("medical_coordinator")}
-              placeholder="Coordinator"
-              className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500"
+              placeholder="Coordinator Name"
+              className="hidden"
             />
           </div>
 
@@ -225,7 +298,7 @@ const CreateAppointment = ({ onclose, campaignId, apiEndpoint }) => {
             />
           </div>
 
-          {/* OPD Section */}
+          {/* OPD / IPD Sections */}
           {patientType === "OPD" && (
             <>
               <div>
@@ -240,26 +313,40 @@ const CreateAppointment = ({ onclose, campaignId, apiEndpoint }) => {
                   <option value="Office">Office</option>
                 </select>
               </div>
+
               {consultationType === "Office" && (
                 <>
                   <div>
-                    <label>Hospital Name</label>
+                    <label>Hospital</label>
+                    <select
+                      onChange={(e) => handleHospitalSelect(e.target.value)}
+                      className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white"
+                    >
+                      <option value="">Select Hospital</option>
+                      {hospitals.map((h) => (
+                        <option key={h._id} value={h._id}>
+                          {h.hospital_name}
+                        </option>
+                      ))}
+                    </select>
                     <input
                       {...register("hospital_name")}
                       placeholder="Hospital Name"
-                      className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500"
+                      className="hidden"
                     />
                   </div>
+
                   <div>
                     <label>Hospital Address</label>
                     <input
                       {...register("hospital_address")}
-                      placeholder="Hospital Address"
+                      placeholder=" address"
                       className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500"
                     />
                   </div>
                 </>
               )}
+
               <div>
                 <label>OP Time</label>
                 <input
@@ -279,7 +366,6 @@ const CreateAppointment = ({ onclose, campaignId, apiEndpoint }) => {
             </>
           )}
 
-          {/* IPD Section */}
           {patientType === "IPD" && (
             <>
               <div>
@@ -306,19 +392,28 @@ const CreateAppointment = ({ onclose, campaignId, apiEndpoint }) => {
                   className="w-full border border-gray-600 p-2 rounded-md"
                 />
               </div>
+
               <div>
-                <label>Hospital Name</label>
-                <input
-                  {...register("hospital_name")}
-                  placeholder="Hospital Name"
-                  className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500"
-                />
+                <label>Hospital</label>
+                <select
+                  onChange={(e) => handleHospitalSelect(e.target.value)}
+                  className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white"
+                >
+                  <option value="">Select Hospital</option>
+                  {hospitals.map((h) => (
+                    <option key={h._id} value={h._id}>
+                      {h.hospital_name}
+                    </option>
+                  ))}
+                </select>
+                <input {...register("hospital_name")} className="hidden" />
               </div>
+
               <div>
                 <label>Hospital Address</label>
                 <input
                   {...register("hospital_address")}
-                  placeholder="Hospital Address"
+                  placeholder="Auto-filled address"
                   className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500"
                 />
               </div>
