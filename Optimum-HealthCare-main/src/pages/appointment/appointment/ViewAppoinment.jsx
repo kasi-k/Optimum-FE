@@ -173,7 +173,9 @@ const ViewAppoinment = ({ onclose, data }) => {
               <p
                 className="cursor-pointer bg-select_layout-dark px-6 py-1.5 rounded-sm"
                 onClick={() => {
-                  navigate("/appointment/invoice");
+                  navigate("/appointment/invoice", {
+                    state: { invoiceData }, // <-- pass invoice data here
+                  });
                 }}
               >
                 Create

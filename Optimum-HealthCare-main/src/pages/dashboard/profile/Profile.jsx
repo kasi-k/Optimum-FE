@@ -18,6 +18,9 @@ const Profile = () => {
 
   const user = JSON.parse(localStorage.getItem("employee")); // logged-in user
   const employee_id = user.employee_id;
+  const role_name = user.role.role_name;
+  console.log(role_name);
+  
 
 
   // Fields to display in the profile info grid
@@ -132,7 +135,7 @@ const Profile = () => {
 
         {/* Right WFH Leave Component */}
         <div className="lg:col-span-7 md:grid-cols-1 dark:bg-layout-dark bg-layout-light h-fit px-4 py-2 rounded-xl dark:text-white text-black">
-          <WFH_Leave  employeeId={employee_id} reportingPerson={rpperson} />
+          <WFH_Leave  employeeId={employee_id} reportingPerson={rpperson} role={role_name}/>
         </div>
       </div>
 

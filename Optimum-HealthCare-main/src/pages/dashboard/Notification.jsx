@@ -56,26 +56,42 @@ const Notification = ({ onclose, employeeId, onUpdateUnread }) => {
     }
   };
 
-  const handleAction = async (notificationId, actionType, relatedId) => {
+  const handleAction = async (notificationId, actionType, relatedId, title) => {
     try {
-      if (!relatedId) return alert("No related WFH request found");
+      if (!relatedId) return alert("No related request found");
 
-      // Call backend with WFH request id
-      await axios.patch(`${API}/wfh/respond/${relatedId}`, {
-        action: actionType,
-      });
+      let endpoint = "";
 
-      // Update UI instantly
+      // 🔹 Identify notification type based on title
+      if (title?.toLowerCase().includes("wfh")) {
+        endpoint = `${API}/wfh/respond/${relatedId}`;
+      } else if (title?.toLowerCase().includes("leave")) {
+        endpoint = `${API}/leave/respond/${relatedId}`;
+      } else {
+        return alert("Unknown notification type");
+      }
+
+      // 🔹 Call appropriate API (WFH or Leave)
+      await axios.patch(endpoint, { action: actionType });
+
+      // 🔹 Update UI instantly after action
       setNotifications((prev) =>
         prev.map((n) =>
           n._id === notificationId
-            ? { ...n, read: true, actions: [] } // remove buttons after action
+            ? { ...n, read: true, actions: [] } // remove buttons
             : n
         )
       );
+
+      if (onUpdateUnread) {
+        const unreadCount = notifications.filter(
+          (n) => n._id !== notificationId && !n.read
+        ).length;
+        onUpdateUnread(unreadCount);
+      }
     } catch (error) {
       console.error(error);
-      alert("Failed to update WFH request");
+      alert("Failed to update request");
     }
   };
 
@@ -133,7 +149,12 @@ const Notification = ({ onclose, employeeId, onUpdateUnread }) => {
                       {n.actions.includes("APPROVED") && (
                         <button
                           onClick={() =>
-                            handleAction(n._id, "APPROVED", n.relatedId)
+                            handleAction(
+                              n._id,
+                              "APPROVED",
+                              n.relatedId,
+                              n.title
+                            )
                           }
                           className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
                         >
@@ -143,7 +164,12 @@ const Notification = ({ onclose, employeeId, onUpdateUnread }) => {
                       {n.actions.includes("DECLINED") && (
                         <button
                           onClick={() =>
-                            handleAction(n._id, "DECLINED", n.relatedId)
+                            handleAction(
+                              n._id,
+                              "DECLINED",
+                              n.relatedId,
+                              n.title
+                            )
                           }
                           className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
                         >

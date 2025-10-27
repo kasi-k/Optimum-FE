@@ -146,7 +146,7 @@ const Doctor = () => {
                       ? `₹${data.pending_payment.toLocaleString()}`
                       : "No Pending"}
                   </td>
-                  <td>
+                  <td className="first-letter:uppercase">
                     <span
                       className={`px-2 py-1 rounded-full text-sm ${
                         statusColorMap[data.status] || "text-gray-500"
