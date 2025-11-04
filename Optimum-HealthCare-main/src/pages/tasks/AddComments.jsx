@@ -52,7 +52,7 @@ const AddComments = ({ onclose, task, onSuccess }) => {
       toast.success("Comment added successfully");
       reset();
       onclose();
-      onSuccess && onSuccess(); // Refresh comments list if parent wants
+    onSuccess && onSuccess(commentData);
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.message || "Failed to add comment");

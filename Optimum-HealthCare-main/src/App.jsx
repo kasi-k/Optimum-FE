@@ -4,7 +4,6 @@ import Layout from "./pages/layout/Layout";
 import Login from "./pages/auth/Login";
 
 import Leads from "./pages/leads/Leads";
-import Appointment from "./pages/appointment/Appointment";
 import Finance from "./pages/finance/Finance";
 import Report from "./pages/report/Report";
 import Settings from "./pages/settings/Settings";
@@ -24,6 +23,7 @@ import Tasks from "./pages/tasks/Tasks";
 import ViewTasks from "./pages/tasks/ViewTasks";
 import { ToastContainer } from "react-toastify";
 import AutoLogout from "./pages/auth/AutoLogout";
+import Appointment_Tab from "./pages/appointment/appointment/Appointment_Tab";
 
 const AppContent = () => {
   const { showWarning, warningCountdown, stayLoggedIn } = AutoLogout();
@@ -69,7 +69,7 @@ const AppContent = () => {
             <Route path="viewtasks" element={<ViewTasks />} />
           </Route>
           <Route path="/appointment">
-            <Route index element={<Appointment />} />
+            <Route index element={<Appointment_Tab />} />
             <Route path="invoice" element={<Invoice />} />
           </Route>
           <Route path="/hr" element={<Hr />} />

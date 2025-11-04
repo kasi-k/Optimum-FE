@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { HiArrowsUpDown } from "react-icons/hi2";
 import Pagination from "../../../component/Pagination";
 import { LuEye } from "react-icons/lu";
@@ -10,34 +10,32 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { API, formatDate } from "../../../Constant";
 import { useSearch } from "../../../component/SearchBar";
+import usePermission from "../../../hooks/UsePermissions";
 
-const Campaign = () => {
+const Campaign = ({ user }) => {
   const { searchTerm } = useSearch();
+  const navigate = useNavigate();
+  const { hasPermission } = usePermission(user);
+
+  const canView = hasPermission("Campaigns", "View");
+  const canCreate = hasPermission("Campaigns", "Create");
+  const canExport = hasPermission("Campaigns", "Download");
+
   const [campaigns, setCampaigns] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [createCampaign, setCreateCampaign] = useState(false);
   const [filterParams, setFilterParams] = useState({
-    fromDate: "",
-    toDate: "",
+    fromdate: "",
+    todate: "",
   });
-  const navigate = useNavigate();
 
   const itemsPerPage = 10;
 
+  // ✅ Fetch campaigns
   const fetchCampaigns = async () => {
     try {
-      const res = await axios.get(`${API}/campaign/allcampaigns`, {
-        params: {
-          page: currentPage,
-          limit: itemsPerPage,
-          search: searchTerm,
-          fromDate: filterParams.fromDate,
-          toDate: filterParams.toDate,
-        },
-      });
+      const res = await axios.get(`${API}/campaign/allcampaigns`);
       setCampaigns(res.data.data || []);
-      setFilteredData(res.data.data || []);
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || "Failed to fetch campaigns");
@@ -46,37 +44,70 @@ const Campaign = () => {
 
   useEffect(() => {
     fetchCampaigns();
-    // eslint-disable-next-line
-  }, [currentPage, searchTerm, filterParams, createCampaign]);
+  }, [createCampaign]);
 
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedData = filteredData.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
+  // ✅ Filter + Search Logic
+  const filteredData = useMemo(() => {
+    return campaigns
+      .filter((camp) => {
+        // Date filtering
+        if (!filterParams.fromdate && !filterParams.todate) return true;
+        const start = new Date(camp.startDate);
+        if (filterParams.fromdate && start < new Date(filterParams.fromdate))
+          return false;
+        if (filterParams.todate && start > new Date(filterParams.todate))
+          return false;
+        return true;
+      })
+      .filter((camp) => {
+        if (!searchTerm) return true;
+        const term = searchTerm.toLowerCase();
+        return (
+          camp.campaign_id?.toLowerCase().includes(term) ||
+          camp.channel?.toLowerCase().includes(term)
+        );
+      });
+  }, [campaigns, filterParams, searchTerm]);
+
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredData.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredData, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterParams, searchTerm]);
 
   return (
     <>
+      {/* ---------- Top Action Bar ---------- */}
       <div className="relative">
         <div className="font-layout-font absolute -top-13 right-0 flex justify-end items-center gap-2 pb-2">
-          <p
-            onClick={() => setCreateCampaign(true)}
-            className="cursor-pointer flex items-center dark:text-white gap-2 bg-select_layout-dark px-4 py-2 text-sm rounded-md"
-          >
-            <TbBrandCampaignmonitor size={18} />
-            Create Campaign
-          </p>
-          <p className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md">
-            <TbFileExport />
-            Export
-          </p>
-          <Filter
-            filterParams={filterParams}
-            setFilterParams={setFilterParams}
-          />
+          {canCreate && (
+            <p
+              onClick={() => setCreateCampaign(true)}
+              className="cursor-pointer flex items-center dark:text-white gap-2 bg-select_layout-dark px-4 py-2 text-sm rounded-md"
+            >
+              <TbBrandCampaignmonitor size={18} />
+              Create Campaign
+            </p>
+          )}
+
+          {canExport && (
+            <p className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md">
+              <TbFileExport />
+              Export
+            </p>
+          )}
+
+          {/* ✅ Simple Date Filter */}
+          <div className="cursor-pointer flex items-center gap-3 dark:text-white dark:bg-layout-dark bg-layout-light rounded-md">
+            <Filter onFilterChange={setFilterParams} />
+          </div>
         </div>
       </div>
 
+      {/* ---------- Table ---------- */}
       <div className="font-layout-font overflow-auto no-scrollbar">
         <table className="w-full xl:h-fit h-[703px] dark:text-white whitespace-nowrap">
           <thead>
@@ -97,7 +128,7 @@ const Campaign = () => {
                   </h1>
                 </th>
               ))}
-              <th className="pr-2 rounded-r-lg">Action</th>
+              {canView && <th className="pr-2 rounded-r-lg">Action</th>}
             </tr>
           </thead>
 
@@ -106,9 +137,9 @@ const Campaign = () => {
               paginatedData.map((data, index) => (
                 <tr
                   className="border-b-2 dark:border-overall_bg-dark border-overall_bg-light text-center"
-                  key={index}
+                  key={data._id}
                 >
-                  <td className="rounded-l-lg">
+                  <td className="rounded-l-lg p-2">
                     {(currentPage - 1) * itemsPerPage + index + 1}
                   </td>
                   <td>{data.campaign_id}</td>
@@ -123,23 +154,28 @@ const Campaign = () => {
                       : "0.00"}
                   </td>
 
-                  <td className="pl-4 p-2.5 rounded-r-lg">
-                    <p
-                      onClick={() =>
-                        navigate(`viewcampaign`, {
-                          state: { id: data._id, campid: data.campaign_id },
-                        })
-                      }
-                      className="cursor-pointer bg-[#BAFFBA] text-green-600 w-fit rounded-sm py-1.5 px-1.5"
-                    >
-                      <LuEye size={16} />
-                    </p>
-                  </td>
+                  {canView && (
+                    <td className="pl-4 p-2.5 rounded-r-lg">
+                      <p
+                        onClick={() =>
+                          navigate(`viewcampaign`, {
+                            state: { id: data._id, campid: data.campaign_id },
+                          })
+                        }
+                        className="cursor-pointer bg-[#BAFFBA] text-green-600 w-fit rounded-sm py-1.5 px-1.5"
+                      >
+                        <LuEye size={16} />
+                      </p>
+                    </td>
+                  )}
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="10" className="text-center py-10 text-gray-500">
+                <td
+                  colSpan={canView ? 9 : 8}
+                  className="text-center py-10 text-gray-500"
+                >
                   No matching results found.
                 </td>
               </tr>

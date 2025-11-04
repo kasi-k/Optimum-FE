@@ -10,6 +10,7 @@ import Pagination from "../../../component/Pagination";
 import { useSearch } from "../../../component/SearchBar";
 import DeleteModal from "../../../component/DeleteModal";
 import { API } from "../../../Constant";
+import { toast } from "react-toastify";
 
 const Roles = () => {
   const [roles, setRoles] = useState([]);
@@ -72,6 +73,7 @@ const Roles = () => {
   const confirmDelete = async () => {
     try {
       await axios.delete(`${API}/role/deletebyroleid?roleId=${selectedRole}`);
+      toast.success("Role deleted successfully");
       fetchRoles();
     } catch (err) {
       console.error(err);
@@ -140,7 +142,7 @@ const Roles = () => {
                       <FiEdit2 />
                     </button>
                     <button
-                      // onClick={() => handleDeleteClick(role._id)}
+                      onClick={() => handleDeleteClick(role.role_id)}
                       className="p-1.5 bg-pink-200 text-red-500 rounded-sm"
                     >
                       <RiDeleteBinLine />

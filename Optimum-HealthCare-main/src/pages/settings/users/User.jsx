@@ -81,17 +81,19 @@ const User = () => {
     setDeleteModal(true);
   };
 
-  const confirmDelete = async () => {
-    try {
-      await axios.delete(`${API}/employee/deletebyid?employeeId=${deleteUserId}`);
-      toast.success("User deleted successfully");
-      fetchEmployees();
-    } catch (err) {
-      toast.error("Failed to delete user");
-    } finally {
-      setDeleteModal(false);
-    }
-  };
+// ✅ Only remove user's role, not delete employee record
+const confirmDelete = async () => {
+  try {
+    await axios.put(`${API}/employee/removeuser/${deleteUserId}`);
+    toast.success("User role removed successfully");
+    fetchEmployees();
+  } catch (err) {
+    toast.error("Failed to remove user role");
+  } finally {
+    setDeleteModal(false);
+  }
+};
+
 
   return (
     <>
@@ -152,7 +154,7 @@ const User = () => {
                       <FiEdit2 />
                     </button>
                     <button
-                      onClick={() => handleDeleteUser(data._id)}
+                      onClick={() => handleDeleteUser(data.employee_id)}
                       className="cursor-pointer mx-2 p-1.5 bg-pink-200 text-red-500 rounded-sm"
                     >
                       <RiDeleteBinLine />

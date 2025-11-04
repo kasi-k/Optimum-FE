@@ -20,6 +20,7 @@ const EditRoleAcess = ({ item }) => {
     "Dashboard",
     "Tasks",
     "Leads",
+    "Campaigns",
     "Association",
     "Appointments",
     "Finance",

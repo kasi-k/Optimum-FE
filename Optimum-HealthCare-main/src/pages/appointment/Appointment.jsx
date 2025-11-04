@@ -34,7 +34,7 @@ const Appointment = () => {
         </div>
         
       </div> */}
-      {activeTab === "1" ? <Patients/> : <Appointment_Tab />}
+      {/* {activeTab === "1" ? <Patients/> : <Appointment_Tab />} */}
     </>
   );
 };

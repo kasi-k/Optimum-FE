@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import NavBar from "../../component/NavBar";
 import { AlertTriangle, File } from "lucide-react";
 import { HiArrowsUpDown } from "react-icons/hi2";
@@ -11,7 +11,7 @@ import { toast } from "react-toastify";
 const ViewTasks = () => {
   const [comments, setComments] = useState(false);
   const location = useLocation();
-  const taskData = location.state?.task;
+  const [taskData, setTaskData] = useState(location.state?.task || {});
   const navigate = useNavigate();
 
   const handleMarkComplete = async (taskData) => {
@@ -172,15 +172,27 @@ const ViewTasks = () => {
               ))
             ) : (
               <tr>
-                <td colSpan="7" className="text-center py-10 text-gray-500">No Comments</td>
+                <td colSpan="7" className="text-center py-10 text-gray-500">
+                  No Comments
+                </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
-      {comments && (
-        <AddComments onclose={() => setComments(false)} task={taskData} />
-      )}
+{comments && (
+  <AddComments
+    onclose={() => setComments(false)}
+    task={taskData}
+    onSuccess={(newComment) => {
+      setTaskData((prev) => ({
+        ...prev,
+        comments: [...(prev.comments || []), newComment], // ✅ add new comment locally
+      }));
+    }}
+  />
+)}
+
     </div>
   );
 };

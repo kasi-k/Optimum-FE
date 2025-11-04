@@ -101,6 +101,9 @@ const Layout = () => {
     const featureAccess = accessLevels.find((a) => a.feature === menu.feature);
     return (
       featureAccess?.permissions.includes("View") ||
+      featureAccess?.permissions.includes("Create") ||
+      featureAccess?.permissions.includes("Delete") ||
+      featureAccess?.permissions.includes("Download") ||
       featureAccess?.permissions.includes("All")
     );
   });

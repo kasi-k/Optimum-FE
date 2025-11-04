@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { HiArrowsUpDown } from "react-icons/hi2";
 import Pagination from "../../../component/Pagination";
 import { LuEye } from "react-icons/lu";
@@ -13,9 +13,17 @@ import { RiStickyNoteAddLine, RiUserSharedLine } from "react-icons/ri";
 import TransferLeads from "./TransferLeads";
 import axios from "axios";
 import { API } from "../../../Constant";
+import usePermission from "../../../hooks/UsePermissions";
 
-const Leads_Tab = () => {
+const Leads_Tab = ({ user }) => {
   const { searchTerm } = useSearch();
+  const navigate = useNavigate();
+  const { hasPermission } = usePermission(user);
+
+  const canView = hasPermission("Leads", "View");
+  const canEdit = hasPermission("Leads", "Edit");
+  const canCreate = hasPermission("Leads", "Create");
+
   const [leads, setLeads] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -25,14 +33,16 @@ const Leads_Tab = () => {
   const [selectAll, setSelectAll] = useState(false);
   const [transferLeads, setTransferLeads] = useState(false);
   const [uniqueBDNames, setUniqueBDNames] = useState([]);
-
-  const navigate = useNavigate();
+  const [filterParams, setFilterParams] = useState({
+    fromdate: "",
+    todate: "",
+  });
   const itemsPerPage = 10;
 
-  // ✅ Fetch leads from API
+  // ✅ Fetch leads
   const fetchLeads = async () => {
     try {
-      const { data } = await axios.get(`${API}/lead/getallleads`); // Adjust endpoint
+      const { data } = await axios.get(`${API}/lead/getallleads`);
       setLeads(data.data);
       setFilteredData(data.data);
     } catch (error) {
@@ -44,56 +54,57 @@ const Leads_Tab = () => {
     fetchLeads();
   }, []);
 
+  // ✅ Fetch BD Names
   useEffect(() => {
     const fetchBDNames = async () => {
       try {
         const response = await axios.get(`${API}/employee/getallemployees`);
-        const usersArray = response.data.data; // make sure this is an array
+        const usersArray = response.data.data;
         const bdNames = usersArray
-          .filter((user) => user.role_name.toLowerCase() === "bd")
+          .filter((user) => user.role_name?.toLowerCase() === "bd")
           .map((user) => user.name);
         setUniqueBDNames([...new Set(bdNames)]);
       } catch (error) {
         console.error("Failed to fetch BD users:", error);
       }
     };
-
     fetchBDNames();
   }, []);
-  // ✅ Compute unique BD Names from fetched leads
-  // const uniqueBDNames = useMemo(() => {
-  //   const names = leads
-  //     .map((item) => item.bdName)
-  //     .filter((name) => name && name !== "");
-  //   return [...new Set(names)];
-  // }, [leads]);
 
-  // ✅ Search filter
-  useEffect(() => {
-    if (!searchTerm) {
-      setFilteredData(leads);
-      return;
-    }
+  // ✅ Filter + search logic (like Tasks)
+  const filteredLeads = leads
+    .filter((lead) => {
+      // 📅 Date filter
+      if (!filterParams.fromdate && !filterParams.todate) return true;
+      const created = new Date(lead.createdAt ||lead.CreatedAt);
+      if (filterParams.fromdate && created < new Date(filterParams.fromdate))
+        return false;
+      if (filterParams.todate && created > new Date(filterParams.todate))
+        return false;
+      return true;
+    })
+    .filter((lead) => {
+      // 🔍 Search filter
+      if (!searchTerm) return true;
+      const lowerSearchTerm = searchTerm.toLowerCase();
+      return Object.values(lead).some((value) =>
+        value?.toString().toLowerCase().includes(lowerSearchTerm)
+      );
+    });
 
-    const lowerSearchTerm = searchTerm.toString().toLowerCase();
-    const filtered = leads.filter((item) =>
-      Object.values(item).some((value) =>
-        value.toString().toLowerCase().includes(lowerSearchTerm)
-      )
-    );
-    setFilteredData(filtered);
-    setCurrentPage(1);
-  }, [searchTerm, leads]);
-
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedData = filteredData.slice(
-    startIndex,
-    startIndex + itemsPerPage
+  const paginatedData = filteredLeads.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   );
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterParams, searchTerm, leads]);
+
+  // ✅ Select logic
   const handleSelectAll = () => {
     if (!selectAll) {
-      const allIds = paginatedData.map((_, index) => index + startIndex);
+      const allIds = paginatedData.map((_, index) => index);
       setSelectedRows(allIds);
     } else {
       setSelectedRows([]);
@@ -117,37 +128,47 @@ const Leads_Tab = () => {
 
   return (
     <>
+      {/* ---------- Top Action Bar ---------- */}
       <div className="relative">
         <div className="font-layout-font absolute -top-13 right-0 flex justify-end items-center gap-2 pb-2">
-          <button
-            onClick={() => selectedRows.length > 0 && setTransferLeads(true)}
-            disabled={selectedRows.length === 0}
-            className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md ${
-              selectedRows.length === 0
-                ? "dark:bg-gray-500 bg-gray-400 text-white cursor-not-allowed"
-                : "bg-select_layout-dark dark:text-white text-white cursor-pointer"
-            }`}
-          >
-            <RiUserSharedLine size={18} />
-            Transfer Leads
-          </button>
+          {canEdit && (
+            <button
+              onClick={() => selectedRows.length > 0 && setTransferLeads(true)}
+              disabled={selectedRows.length === 0}
+              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md ${
+                selectedRows.length === 0
+                  ? "dark:bg-gray-500 bg-gray-400 text-white cursor-not-allowed"
+                  : "bg-select_layout-dark dark:text-white text-white cursor-pointer"
+              }`}
+            >
+              <RiUserSharedLine size={18} />
+              Transfer Leads
+            </button>
+          )}
 
-          {/* <p
-            onClick={() => setCreateAppoinment(true)}
-            className="cursor-pointer flex items-center text-white gap-2 bg-select_layout-dark px-4 py-2 text-sm rounded-md"
-          >
-            <RiStickyNoteAddLine size={18} />
-            Create Appoinment
-          </p> */}
+          {canCreate && (
+            <p
+              onClick={() => setCreateAppoinment(true)}
+              className="cursor-pointer flex items-center text-white gap-2 bg-select_layout-dark px-4 py-2 text-sm rounded-md"
+            >
+              <RiStickyNoteAddLine size={18} />
+              Create Appointment
+            </p>
+          )}
 
           <p className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md">
             <TbFileExport />
             Export
           </p>
-          <Filter />
+
+          {/* ✅ Date Filter (same as Tasks) */}
+          <div className="cursor-pointer flex items-center gap-3 dark:text-white dark:bg-layout-dark bg-layout-light rounded-md">
+            <Filter onFilterChange={setFilterParams} />
+          </div>
         </div>
       </div>
 
+      {/* ---------- Table ---------- */}
       <div className="font-layout-font overflow-auto no-scrollbar">
         <table className="w-full xl:h-fit h-[703px] dark:text-white whitespace-nowrap">
           <thead>
@@ -161,21 +182,15 @@ const Leads_Tab = () => {
                 />
               </th>
               <th className="p-4">S.no</th>
-              {[
-                "Lead ID",
-                "Lead Type",
-                "Name",
-                "Age",
-                "Weight",
-                "Circle",
-                "BD Name",
-              ].map((heading) => (
-                <th key={heading} className="p-5">
-                  <h1 className="flex items-center justify-center gap-1">
-                    {heading} <HiArrowsUpDown className="dark:text-white" />
-                  </h1>
-                </th>
-              ))}
+              {["Lead ID", "Lead Type", "Name", "Age", "Weight", "Circle", "BD Name"].map(
+                (heading) => (
+                  <th key={heading} className="p-5">
+                    <h1 className="flex items-center justify-center gap-1">
+                      {heading} <HiArrowsUpDown className="dark:text-white" />
+                    </h1>
+                  </th>
+                )
+              )}
               <th className="pr-2 rounded-r-lg">Action</th>
             </tr>
           </thead>
@@ -191,11 +206,11 @@ const Leads_Tab = () => {
                     <input
                       type="checkbox"
                       className="accent-blue-600"
-                      checked={selectedRows.includes(index + startIndex)}
-                      onChange={() => handleRowSelect(index + startIndex)}
+                      checked={selectedRows.includes(index)}
+                      onChange={() => handleRowSelect(index)}
                     />
                   </td>
-                  <td>{index + 1}</td>
+                  <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                   <td>{data.lead_id}</td>
                   <td>{data.status}</td>
                   <td>{data.name}</td>
@@ -203,21 +218,27 @@ const Leads_Tab = () => {
                   <td>{data.weight}</td>
                   <td>{data.circle}</td>
                   <td>{data.bdname || "Not yet Assigned"}</td>
+
                   <td className="space-x-2 pl-4 p-2.5 rounded-r-lg">
-                    <button
-                      onClick={() => setEdit_lead(true)}
-                      className="cursor-pointer bg-blue-200 p-1.5 rounded-sm"
-                    >
-                      <Pencil size={16} className="text-blue-600" />
-                    </button>
-                    <button
-                      onClick={() =>
-                        navigate("viewleads", { state: { lead: data } })
-                      }
-                      className="cursor-pointer bg-green-200 p-1.5 rounded-sm"
-                    >
-                      <LuEye size={16} className="text-green-600" />
-                    </button>
+                    {canEdit && (
+                      <button
+                        onClick={() => setEdit_lead(true)}
+                        className="cursor-pointer bg-blue-200 p-1.5 rounded-sm"
+                      >
+                        <Pencil size={16} className="text-blue-600" />
+                      </button>
+                    )}
+
+                    {canView && (
+                      <button
+                        onClick={() =>
+                          navigate("viewleads", { state: { lead: data } })
+                        }
+                        className="cursor-pointer bg-green-200 p-1.5 rounded-sm"
+                      >
+                        <LuEye size={16} className="text-green-600" />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))
@@ -233,7 +254,7 @@ const Leads_Tab = () => {
       </div>
 
       <Pagination
-        totalItems={filteredData.length}
+        totalItems={filteredLeads.length}
         itemsPerPage={itemsPerPage}
         currentPage={currentPage}
         onPageChange={setCurrentPage}
@@ -248,7 +269,7 @@ const Leads_Tab = () => {
           onclose={() => setTransferLeads(false)}
           bdNames={uniqueBDNames}
           fetchLeads={fetchLeads}
-          selectedLeads={selectedRows.map((index) => filteredData[index])}
+          selectedLeads={selectedRows.map((index) => filteredLeads[index])}
           onSave={handleTransferSave}
         />
       )}

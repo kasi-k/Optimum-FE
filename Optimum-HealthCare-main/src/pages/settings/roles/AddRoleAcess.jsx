@@ -16,6 +16,7 @@ const AddRoles = () => {
     "Dashboard",
     "Tasks",
     "Leads",
+    "Campaigns",
     "Association",
     "Appointments",
     "Finance",
@@ -135,7 +136,7 @@ const AddRoles = () => {
           </p>
           <p
             onClick={handleSave}
-            className="bg-select_layout-dark dark:bg-select_layout-light text-white px-8 py-2 rounded-sm"
+            className="cursor-pointer bg-select_layout-dark dark:bg-select_layout-light text-white px-8 py-2 rounded-sm"
           >
             Save
           </p>

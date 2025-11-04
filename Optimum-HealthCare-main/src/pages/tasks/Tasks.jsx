@@ -15,6 +15,7 @@ import axios from "axios";
 import { API, formatDate } from "../../Constant";
 import { toast } from "react-toastify";
 import DeleteModal from "../../component/DeleteModal";
+import usePermission from "../../hooks/UsePermissions"; // 👈 Import the hook
 
 const Tasks = () => {
   const [tasks, setTasks] = useState([]);
@@ -22,18 +23,27 @@ const Tasks = () => {
   const [addTasks, setAddTasks] = useState(false);
   const [edittasks, setEdittasks] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
-
-  const { searchTerm } = useSearch();
-  const [filterParams, setFilterParams] = useState({ fromdate: "", todate: "" });
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
-  const [deleteModal, setDeleteModal] = useState(false);
-  const [deleteId, setDeleteId] = useState(null);
   const [users, setUsers] = useState([]);
 
+  const { searchTerm } = useSearch();
+  const [filterParams, setFilterParams] = useState({
+    fromdate: "",
+    todate: "",
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [DeleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [DeleteId, setDeleteId] = useState(null);
   const itemsPerPage = 10;
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("employee"));
+
+  // ✅ Permission-based access
+  const { hasPermission } = usePermission(user);
+
+  const canView = hasPermission("Tasks", "View");
+  const canCreate = hasPermission("Tasks", "Create");
+  const canDelete = hasPermission("Tasks", "Delete");
+  const canExport = hasPermission("Tasks", "Download");
 
   const statusColorMap = {
     doing: "font-bold text-blue-700",
@@ -43,9 +53,10 @@ const Tasks = () => {
 
   // Fetch all employees
   useEffect(() => {
-    axios.get(`${API}/employee/getallemployees`)
-      .then(res => setUsers(res.data.data))
-      .catch(err => console.error(err));
+    axios
+      .get(`${API}/employee/getallemployees`)
+      .then((res) => setUsers(res.data.data))
+      .catch((err) => console.error(err));
   }, []);
 
   // Fetch all tasks
@@ -53,7 +64,10 @@ const Tasks = () => {
     setLoading(true);
     try {
       const res = await axios.get(`${API}/task/getalltasks`, {
-        params: { role_name: user.role.role_name, employee_id: user.employee_id },
+        params: {
+          role_name: user.role.role_name,
+          employee_id: user.employee_id,
+        },
       });
       setTasks(res.data.data || []);
     } catch (err) {
@@ -70,7 +84,7 @@ const Tasks = () => {
   // Delete task
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`${API}/task/deletetask/${id}`);
+      await axios.delete(`${API}/task/Deletetask/${id}`);
       toast.success("Task deleted successfully");
       fetchTasks();
     } catch (err) {
@@ -78,32 +92,37 @@ const Tasks = () => {
     }
   };
 
-  // Filter tasks by role, assigned user, date, and search
+  // Filter + search
   const filteredTasks = tasks
-    // Filter by role/assigned
-    .filter(task => user.role.role_name === "admin" || task.assigned_to.includes(user.employee_id))
-    // Filter by created date if filterParams exist
-    .filter(task => {
+    .filter(
+      (task) =>
+        user.role.role_name === "admin" ||
+        task.assigned_to.includes(user.employee_id)
+    )
+    .filter((task) => {
       if (!filterParams.fromdate && !filterParams.todate) return true;
-      const created = new Date(task.createdAt);
-      if (filterParams.fromdate && created < new Date(filterParams.fromdate)) return false;
-      if (filterParams.todate && created > new Date(filterParams.todate)) return false;
+      const Created = new Date(task.createdAt || task.CreatedAt);
+
+      if (filterParams.fromdate && Created < new Date(filterParams.fromdate))
+        return false;
+      if (filterParams.todate && Created > new Date(filterParams.todate))
+        return false;
       return true;
     })
-    // Map assigned_to IDs to names
-    .map(task => {
+    .map((task) => {
       let assignedNames = [];
       if (user.role.role_name === "admin") {
-        assignedNames = task.assigned_to.map(id => users.find(u => u.employee_id === id)?.name || id);
+        assignedNames = task.assigned_to.map(
+          (id) => users.find((u) => u.employee_id === id)?.name || id
+        );
       } else {
         assignedNames = task.assigned_to
-          .filter(id => id === user.employee_id)
-          .map(id => users.find(u => u.employee_id === id)?.name || id);
+          .filter((id) => id === user.employee_id)
+          .map((id) => users.find((u) => u.employee_id === id)?.name || id);
       }
       return { ...task, assigned_to_name: assignedNames.join(", ") };
     })
-    // Search filter
-    .filter(task => {
+    .filter((task) => {
       if (!searchTerm) return true;
       const term = searchTerm.toLowerCase();
       return (
@@ -121,49 +140,60 @@ const Tasks = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-    setTotalPages(Math.ceil(filteredTasks.length / itemsPerPage));
   }, [searchTerm, filterParams, tasks, users]);
 
   return (
     <>
       <NavBar title="Tasks" pagetitle="Tasks" />
-      <div className="font-layout-font flex justify-end items-center gap-2 pb-2">
-        <button
-          onClick={() => setAddTasks(true)}
-          className="cursor-pointer flex items-center dark:text-white gap-2 bg-select_layout-dark px-4 py-2 text-sm rounded-md"
-        >
-          <div className="relative w-6 h-6">
-            <File className="absolute  w-6 h-6" />
-            <AlertTriangle className="absolute left-1.5 top-2  w-3 h-3" />
-          </div>
-          <span>Add Task</span>
-        </button>
 
-        <p className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md">
-          <TbFileExport />
-          Export
-        </p>
+      {/* ✅ Top Action Buttons */}
+      <div className="font-layout-font flex justify-end items-center gap-2 pb-2">
+        {canCreate && (
+          <button
+            onClick={() => setAddTasks(true)}
+            className="cursor-pointer flex items-center dark:text-white gap-2 bg-select_layout-dark px-4 py-2 text-sm rounded-md"
+          >
+            <div className="relative w-6 h-6">
+              <File className="absolute w-6 h-6" />
+              <AlertTriangle className="absolute left-1.5 top-2 w-3 h-3" />
+            </div>
+            <span>Add Task</span>
+          </button>
+        )}
+
+        {canExport && (
+          <p className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md">
+            <TbFileExport />
+            Export
+          </p>
+        )}
 
         <div className="cursor-pointer flex items-center gap-3 dark:text-white dark:bg-layout-dark bg-layout-light rounded-md">
           <Filter onFilterChange={setFilterParams} />
         </div>
       </div>
 
+      {/* ✅ Tasks Table */}
       <div className="font-layout-font overflow-auto no-scrollbar">
         <table className="w-full xl:h-fit h-[703px] dark:text-white whitespace-nowrap">
           <thead>
             <tr className="font-semibold text-sm dark:bg-layout-dark bg-layout-light border-b-2 dark:border-overall_bg-dark border-overall_bg-light">
               <th className="p-3.5 rounded-l-lg">S.no</th>
-              {["Tasks", "Start Date", "Due Date", "Assigned to", "Status"].map((heading) => (
-                <th key={heading} className="p-5">
-                  <h1 className="flex items-center justify-center gap-1">
-                    {heading} <HiArrowsUpDown className="dark:text-white" />
-                  </h1>
-                </th>
-              ))}
-              <th className="pr-2 rounded-r-lg">Action</th>
+              {["Tasks", "Start Date", "Due Date", "Assigned to", "Status"].map(
+                (heading) => (
+                  <th key={heading} className="p-5">
+                    <h1 className="flex items-center justify-center gap-1">
+                      {heading} <HiArrowsUpDown className="dark:text-white" />
+                    </h1>
+                  </th>
+                )
+              )}
+              {(canView || canDelete) && (
+                <th className="pr-2 rounded-r-lg">Action</th>
+              )}
             </tr>
           </thead>
+
           <tbody className="dark:bg-layout-dark bg-layout-light rounded-2xl dark:text-gray-200 text-gray-600 cursor-default">
             {loading ? (
               <tr>
@@ -177,31 +207,51 @@ const Tasks = () => {
                   className="border-b-2 dark:border-overall_bg-dark border-overall_bg-light text-center"
                   key={data._id}
                 >
-                  <td className="rounded-l-lg">{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                  <td className="rounded-l-lg p-2">
+                    {(currentPage - 1) * itemsPerPage + index + 1}
+                  </td>
                   <td>{data.task_title}</td>
                   <td>{formatDate(data.start_date)}</td>
                   <td>{formatDate(data.due_date)}</td>
                   <td>{data.assigned_to_name}</td>
                   <td className="first-letter:capitalize">
-                    <span className={`px-2 py-1 rounded-full text-sm ${statusColorMap[data.status] || "text-gray-700"}`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-sm ${
+                        statusColorMap[data.status] || "text-gray-700"
+                      }`}
+                    >
                       {data.status}
                     </span>
                   </td>
 
-                  <td className="pl-4 p-2.5 rounded-r-lg space-x-2">
-                    <button
-                      className="cursor-pointer bg-[#BAFFBA] text-green-600 w-fit rounded-sm py-1.5 px-1.5"
-                      onClick={() => navigate(`/tasks/viewtasks`, { state: { task: data } })}
-                    >
-                      <LuEye size={16} />
-                    </button>
-                    <button
-                      onClick={() => { setDeleteId(data._id); setDeleteModal(true); }}
-                      className="cursor-pointer bg-pink-200 text-red-500 w-fit rounded-sm py-1.5 px-1.5"
-                    >
-                      <RiDeleteBinLine size={16} />
-                    </button>
-                  </td>
+                  {(canView || canDelete) && (
+                    <td className="pl-4 p-2.5 rounded-r-lg space-x-2">
+                      {canView && (
+                        <button
+                          className="cursor-pointer bg-[#BAFFBA] text-green-600 w-fit rounded-sm py-1.5 px-1.5"
+                          onClick={() =>
+                            navigate(`/tasks/viewtasks`, {
+                              state: { task: data},
+                            })
+                          }
+                        >
+                          <LuEye size={16} />
+                        </button>
+                      )}
+
+                      {canDelete && (
+                        <button
+                          onClick={() => {
+                            setDeleteId(data._id);
+                            setDeleteModalOpen(true);
+                          }}
+                          className="cursor-pointer bg-pink-200 text-red-500 w-fit rounded-sm py-1.5 px-1.5"
+                        >
+                          <RiDeleteBinLine size={16} />
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))
             ) : (
@@ -222,13 +272,20 @@ const Tasks = () => {
         onPageChange={setCurrentPage}
       />
 
-      {addTasks && <AddTasks onclose={() => setAddTasks(false)} onSuccess={fetchTasks} />}
-      {edittasks && <EditTasks task={selectedTask} onclose={() => setEdittasks(false)} />}
-      {deleteModal && (
+      {addTasks && (
+        <AddTasks onclose={() => setAddTasks(false)} onSuccess={fetchTasks} />
+      )}
+      {edittasks && (
+        <EditTasks task={selectedTask} onclose={() => setEdittasks(false)} />
+      )}
+      {DeleteModalOpen && (
         <DeleteModal
           title="task"
-          onclose={() => setDeleteModal(false)}
-          onConfirm={async () => { await handleDelete(deleteId); setDeleteModal(false); }}
+          onclose={() => setDeleteModalOpen(false)}
+          onConfirm={async () => {
+            await handleDelete(DeleteId);
+            setDeleteModalOpen(false);
+          }}
         />
       )}
     </>
