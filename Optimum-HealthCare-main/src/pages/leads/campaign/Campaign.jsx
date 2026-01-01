@@ -11,6 +11,10 @@ import { toast } from "react-toastify";
 import { API, formatDate } from "../../../Constant";
 import { useSearch } from "../../../component/SearchBar";
 import usePermission from "../../../hooks/UsePermissions";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 const Campaign = ({ user }) => {
   const { searchTerm } = useSearch();
@@ -20,6 +24,7 @@ const Campaign = ({ user }) => {
   const canView = hasPermission("Campaigns", "View");
   const canCreate = hasPermission("Campaigns", "Create");
   const canExport = hasPermission("Campaigns", "Download");
+  const [exportOpen, setExportOpen] = useState(false);
 
   const [campaigns, setCampaigns] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -78,6 +83,82 @@ const Campaign = ({ user }) => {
     setCurrentPage(1);
   }, [filterParams, searchTerm]);
 
+  const exportToPDF = () => {
+    const doc = new jsPDF("l", "mm", "a4"); // landscape
+
+    doc.setFontSize(14);
+    doc.text("Campaign Report", 14, 15);
+
+    autoTable(doc, {
+      startY: 22,
+      head: [
+        [
+          "S.No",
+          "Campaign ID",
+          "Channel",
+          "Start Date",
+          "End Date",
+          "Budget",
+          "Leads",
+          "CPL",
+        ],
+      ],
+      body: filteredData.map((camp, index) => [
+        index + 1,
+        camp.campaign_id,
+        camp.channel,
+        formatDate(camp.startDate),
+        formatDate(camp.endDate),
+        camp.budget,
+        camp.leads ? camp.leads.length : 0,
+        camp.leads && camp.leads.length > 0
+          ? (camp.budget / camp.leads.length).toFixed(2)
+          : "0.00",
+      ]),
+      headStyles: {
+        fillColor: [30, 64, 175], // dark blue
+        textColor: 255,
+      },
+      styles: {
+        fontSize: 9,
+        cellPadding: 3,
+      },
+    });
+
+    doc.save("Campaign_Report.pdf");
+  };
+
+  const exportToExcel = () => {
+    const excelData = filteredData.map((camp, index) => ({
+      "S.No": index + 1,
+      "Campaign ID": camp.campaign_id,
+      Channel: camp.channel,
+      "Start Date": formatDate(camp.startDate),
+      "End Date": formatDate(camp.endDate),
+      Budget: camp.budget,
+      Leads: camp.leads ? camp.leads.length : 0,
+      CPL:
+        camp.leads && camp.leads.length > 0
+          ? (camp.budget / camp.leads.length).toFixed(2)
+          : "0.00",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Campaigns");
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    const fileData = new Blob([excelBuffer], {
+      type: "application/octet-stream",
+    });
+
+    saveAs(fileData, "Campaign_Report.xlsx");
+  };
+
   return (
     <>
       {/* ---------- Top Action Bar ---------- */}
@@ -94,10 +175,41 @@ const Campaign = ({ user }) => {
           )}
 
           {canExport && (
-            <p className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md">
-              <TbFileExport />
-              Export
-            </p>
+            <div className="relative">
+              {/* Export Button */}
+              <button
+                onClick={() => setExportOpen((prev) => !prev)}
+                className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md"
+              >
+                <TbFileExport />
+                Export
+              </button>
+
+              {/* Dropdown */}
+              {exportOpen && (
+                <div className="absolute right-0 mt-2 w-32 rounded-md shadow-lg z-50 dark:bg-layout-dark dark:text-white text-black bg-white border dark:border-gray-700">
+                  <button
+                    onClick={() => {
+                      exportToPDF();
+                      setExportOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    Export PDF
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      exportToExcel();
+                      setExportOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    Export Excel
+                  </button>
+                </div>
+              )}
+            </div>
           )}
 
           {/* ✅ Simple Date Filter */}

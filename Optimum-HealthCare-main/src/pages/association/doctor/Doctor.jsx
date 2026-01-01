@@ -15,6 +15,10 @@ import { toast } from "react-toastify";
 import { API } from "../../../Constant";
 import EditDoctor from "./EditDoctor";
 import DeleteModal from "../../../component/DeleteModal";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 const Doctor = () => {
   const [addDoctorModal, setAddDoctorModal] = useState(false);
@@ -26,11 +30,10 @@ const Doctor = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteModal, setDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+  const [exportOpen, setExportOpen] = useState(false);
+
 
   const itemsPerPage = 10;
-
-
-  
 
   // ✅ Fetch Doctors - moved outside useEffect
   const fetchDoctors = async () => {
@@ -83,6 +86,76 @@ const Doctor = () => {
     on_leave: "text-yellow-600 font-semibold",
   };
 
+  const exportDoctorsToPDF = () => {
+    const doc = new jsPDF("landscape");
+
+    doc.setFontSize(16);
+    doc.text("Doctor List", 14, 15);
+
+    const tableColumn = [
+      "S.No",
+      "Doctor Name",
+      "City",
+      "Experience",
+      "Specialization",
+      "Contact",
+      "Pending Payment",
+      "Status",
+    ];
+
+    const tableRows = filteredData.map((doctor, index) => [
+      index + 1,
+      doctor.doctor_name,
+      doctor.city,
+      `${doctor.experience} yrs`,
+      doctor.specialization,
+      doctor.contact,
+      doctor.pending_payment > 0 ? `Rs.${doctor.pending_payment}` : "No Pending",
+      doctor.status,
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 25,
+      styles: { fontSize: 9 },
+    });
+
+    doc.save("Doctors_List.pdf");
+  };
+
+  const exportDoctorsToExcel = () => {
+    const excelData = filteredData.map((doctor, index) => ({
+      "S.No": index + 1,
+      "Doctor Name": doctor.doctor_name,
+      City: doctor.city,
+      Experience: `${doctor.experience} yrs`,
+      Specialization: doctor.specialization,
+      Contact: doctor.contact,
+      "Pending Payment":
+        doctor.pending_payment > 0
+          ? `₹${doctor.pending_payment}`
+          : "No Pending",
+      Status: doctor.status,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Doctors");
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    const file = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    saveAs(file, "Doctors_List.xlsx");
+  };
+
   return (
     <>
       <div className="relative">
@@ -94,10 +167,40 @@ const Doctor = () => {
             <Plus size={16} />
             Add Doctor
           </p>
-          <p className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md">
-            <TbFileExport />
-            Export
-          </p>
+          <div className="relative">
+            <button
+              onClick={() => setExportOpen((prev) => !prev)}
+              className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md"
+            >
+              <TbFileExport />
+              Export
+            </button>
+
+            {exportOpen && (
+              <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-layout-dark shadow-md rounded-md z-50">
+                <button
+                  onClick={() => {
+                    exportDoctorsToPDF();
+                    setExportOpen(false);
+                  }}
+                  className="block w-full px-4 py-2 text-left text-sm text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Export PDF
+                </button>
+
+                <button
+                  onClick={() => {
+                    exportDoctorsToExcel();
+                    setExportOpen(false);
+                  }}
+                  className="block w-full px-4 py-2 text-left text-sm text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Export Excel
+                </button>
+              </div>
+            )}
+          </div>
+
           <Filter />
         </div>
       </div>

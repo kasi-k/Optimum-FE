@@ -9,33 +9,81 @@ import profile from "../../../assets/images/profile.jpg";
 import EditLeadDetails from "./EditLeadDetails";
 import MultiDocuments from "./MultiDocuments";
 import { UserPlus } from "lucide-react";
+import { RiStickyNoteAddLine } from "react-icons/ri";
+import Create_Appointment from "./Create_Appoinment";
+
+const formatDateReadable = (date) =>
+  date
+    ? new Date(date).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+    : "-";
+
+const formatRelativeTime = (date) => {
+  if (!date) return "-";
+
+  const now = new Date();
+  const past = new Date(date);
+  const diffInSeconds = Math.floor((now - past) / 1000);
+
+  const units = [
+    { label: "year", seconds: 31536000 },
+    { label: "month", seconds: 2592000 },
+    { label: "day", seconds: 86400 },
+    { label: "hour", seconds: 3600 },
+    { label: "minute", seconds: 60 },
+  ];
+
+  for (let unit of units) {
+    const value = Math.floor(diffInSeconds / unit.seconds);
+    if (value >= 1) {
+      return `${value} ${unit.label}${value > 1 ? "s" : ""} ago`;
+    }
+  }
+
+  return "Just now";
+};
 
 const ViewLeads = () => {
   const navigate = useNavigate();
   const [addFollowUp, setAddFollowUp] = useState(false);
   const [multidocuments, setMultidocuments] = useState(false);
   const [editLeadsDetails, setEditLeadsDetails] = useState(false);
+  const [appointmentModal, setAppointmentModal] = useState(false);
   const location = useLocation();
   const { lead } = location.state || {};
 
   const fields = [
-    { label: "Lead ID", value: lead.leadId },
-    { label: "Created Date", value: lead.createdDate },
-    { label: "Lead Type", value: lead.leadType },
+    { label: "Lead ID", value: lead.lead_id },
+    // { label: "Lead Type", value: lead.leadType },
     { label: "Name", value: lead.name },
     { label: "Age", value: lead.age },
     { label: "Weight", value: lead.weight },
     { label: "Circle", value: lead.circle },
-    { label: "BD Name", value: lead.bdName || "—" },
-    { label: "Comments", value: lead.comments },
+    { label: "BD Name", value: lead.bdname || "—" },
+    { label: "Comments", value: lead.notes },
     { label: "Status", value: lead.status },
-    { label: "Lead Transfer", value: lead.leadTransfer },
+    {
+      label: "Created Date",
+      value: `${formatDateReadable(lead.createdAt)} ( ${formatRelativeTime(
+        lead.createdAt
+      )})`,
+    },
+    // { label: "Lead Transfer", value: lead.leadTransfer },
   ];
   return (
     <>
       <NavBar title="Leads" pagetitle="View Leads" />
       <div className="font-layout-font mb-3 overflow-auto no-scrollbar">
         <div className="flex justify-end my-2 gap-2 ">
+          <button
+            onClick={() => setAppointmentModal(true)}
+            className="font-normal flex  items-center  gap-2 text-sm bg-select_layout-dark rounded-md text-white px-6 py-2.5 "
+          >
+               <RiStickyNoteAddLine size={18} /> Add Appointment
+          </button>
           <button
             onClick={() => setMultidocuments(true)}
             className="font-normal flex  items-center  gap-2 text-sm bg-select_layout-dark rounded-md text-white px-6 py-2.5 "
@@ -62,10 +110,10 @@ const ViewLeads = () => {
                   />
                 </span>
                 <p className=" mt-4 mx-3 dark:text-white font-semibold ">
-                  Name
+                  {lead.name}
                 </p>
                 <p className="my-1 mx-3 dark:text-gray-200  font-extralight text-sm">
-                  8974612300
+                  {lead.phone}
                 </p>
               </div>
               <div className="grid -mt-36 mx-2 my-2">
@@ -96,7 +144,7 @@ const ViewLeads = () => {
                   Ravikumar 27/09/2024,10:00am
                 </p>
               </div>
-               <div>
+              <div>
                 <p className="font-semibold flex gap-4">
                   <span className="bg-blue-200 text-blue-400 px-2 py-2 rounded">
                     <FaRegFileAlt />
@@ -110,7 +158,7 @@ const ViewLeads = () => {
                   Ravikumar 27/09/2024,10:00am
                 </p>
               </div>
-               <div>
+              <div>
                 <p className="font-semibold flex gap-4">
                   <span className="bg-blue-200 text-blue-400 px-2 py-2 rounded">
                     <FaRegFileAlt />
@@ -123,7 +171,8 @@ const ViewLeads = () => {
                 <p className="text-sm mx-12 font-extralight dark:text-gray-50">
                   Ravikumar 27/09/2024,10:00am
                 </p>
-              </div> <div>
+              </div>{" "}
+              <div>
                 <p className="font-semibold flex gap-4">
                   <span className="bg-blue-200 text-blue-400 px-2 py-2 rounded">
                     <FaRegFileAlt />
@@ -185,6 +234,11 @@ const ViewLeads = () => {
       {editLeadsDetails && (
         <EditLeadDetails onclose={() => setEditLeadsDetails(false)} />
       )}
+      {appointmentModal && (
+        <Create_Appointment
+          onclose={() => setAppointmentModal(false)}
+          lead={lead}
+          />)}
     </>
   );
 };

@@ -87,8 +87,8 @@ const TransferLeads = ({
             <div className="col-span-2 flex gap-4">
               <label className="mb-2 block mt-2">Selected Leads</label>
               <div className="max-h-40 w-72 overflow-y-auto no-scrollbar border border-[#454545] rounded-md p-2 space-y-1">
-                {selectedLeads.map((lead) => (
-                  <label key={lead.leadId} className="flex items-center gap-2">
+                {selectedLeads.map((lead ,i) => (
+                  <label key={i} className="flex items-center gap-2">
                     <input
                       type="checkbox"
                       className="accent-blue-600"

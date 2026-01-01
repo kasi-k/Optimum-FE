@@ -32,7 +32,6 @@ const ViewCampaign = () => {
     try {
       const res = await axios.get(`${API}/campaign/${campaignId}`);
 
-
       setCampaignDetails(res.data.data || null);
       setLeadsData(res.data.data.leads || []);
       setAppointmentsData(res.data.data.appointments || []);
@@ -93,8 +92,14 @@ const ViewCampaign = () => {
               {campaignDetails?.channel || "-"}
             </p>
             <p className="col-span-3">Link</p>
-            <p className="col-span-1 underline">
-              {campaignDetails?.link || "link"}
+            <p
+              className="col-span-2 underline text-blue-500 cursor-pointer"
+              onClick={() => {
+                navigator.clipboard.writeText(campaignDetails?.campaignLink);
+                toast.success("Link copied!");
+              }}
+            >
+              Campaign Link
             </p>
           </div>
         </div>
@@ -168,6 +173,7 @@ const ViewCampaign = () => {
           onclose={() => setIsOpenAddLeads(false)}
           campaignId1={campaignId1}
           fetchCampaignDetails={fetchCampaignDetails}
+          Platform={campaignDetails.channel}
         />
       )}
       {isOpenAddAppointments && (

@@ -14,10 +14,18 @@ import TransferLeads from "./TransferLeads";
 import axios from "axios";
 import { API } from "../../../Constant";
 import usePermission from "../../../hooks/UsePermissions";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+
+
 
 const Leads_Tab = ({ user }) => {
   const { searchTerm } = useSearch();
   const navigate = useNavigate();
+  const employee = JSON.parse(localStorage.getItem("employee"));
+
   const { hasPermission } = usePermission(user);
 
   const canView = hasPermission("Leads", "View");
@@ -33,6 +41,8 @@ const Leads_Tab = ({ user }) => {
   const [selectAll, setSelectAll] = useState(false);
   const [transferLeads, setTransferLeads] = useState(false);
   const [uniqueBDNames, setUniqueBDNames] = useState([]);
+  const [exportOpen, setExportOpen] = useState(false);
+
   const [filterParams, setFilterParams] = useState({
     fromdate: "",
     todate: "",
@@ -42,7 +52,13 @@ const Leads_Tab = ({ user }) => {
   // ✅ Fetch leads
   const fetchLeads = async () => {
     try {
-      const { data } = await axios.get(`${API}/lead/getallleads`);
+      const { data } = await axios.get(`${API}/lead/getallleads`, {
+        params: {
+          role_name: employee.role.role_name,
+          name: employee.name,
+        },
+      });
+
       setLeads(data.data);
       setFilteredData(data.data);
     } catch (error) {
@@ -76,7 +92,7 @@ const Leads_Tab = ({ user }) => {
     .filter((lead) => {
       // 📅 Date filter
       if (!filterParams.fromdate && !filterParams.todate) return true;
-      const created = new Date(lead.createdAt ||lead.CreatedAt);
+      const created = new Date(lead.createdAt || lead.CreatedAt);
       if (filterParams.fromdate && created < new Date(filterParams.fromdate))
         return false;
       if (filterParams.todate && created > new Date(filterParams.todate))
@@ -126,6 +142,73 @@ const Leads_Tab = ({ user }) => {
     setTransferLeads(false);
   };
 
+  const exportLeadsToPDF = (leads) => {
+  const doc = new jsPDF("landscape");
+
+  doc.setFontSize(14);
+  doc.text("Leads Report", 14, 15);
+
+  const tableColumn = [
+    "Lead ID",
+    "Name",
+    "Age",
+    "Weight",
+    "Circle",
+    "Status",
+    "BD Name",
+  ];
+
+  const tableRows = leads.map((lead) => [
+    lead.lead_id,
+    lead.name,
+    lead.age,
+    lead.weight,
+    lead.circle,
+    lead.status,
+    lead.bdname || "Unassigned",
+  ]);
+
+  autoTable(doc, {
+    head: [tableColumn],
+    body: tableRows,
+    startY: 20,
+    styles: { fontSize: 9 },
+    headStyles: { fillColor: [33, 150, 243] },
+  });
+
+  doc.save("Leads_Report.pdf");
+};
+
+
+const exportLeadsToExcel = (leads) => {
+  const worksheetData = leads.map((lead) => ({
+    "Lead ID": lead.lead_id,
+    Name: lead.name,
+    Age: lead.age,
+    Weight: lead.weight,
+    Circle: lead.circle,
+    Status: lead.status,
+    "BD Name": lead.bdname || "Unassigned",
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+  const workbook = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
+
+  const excelBuffer = XLSX.write(workbook, {
+    bookType: "xlsx",
+    type: "array",
+  });
+
+  const file = new Blob([excelBuffer], {
+    type: "application/octet-stream",
+  });
+
+  saveAs(file, "Leads_Report.xlsx");
+};
+
+
   return (
     <>
       {/* ---------- Top Action Bar ---------- */}
@@ -146,7 +229,7 @@ const Leads_Tab = ({ user }) => {
             </button>
           )}
 
-          {canCreate && (
+          {/* {canCreate && (
             <p
               onClick={() => setCreateAppoinment(true)}
               className="cursor-pointer flex items-center text-white gap-2 bg-select_layout-dark px-4 py-2 text-sm rounded-md"
@@ -154,12 +237,46 @@ const Leads_Tab = ({ user }) => {
               <RiStickyNoteAddLine size={18} />
               Create Appointment
             </p>
-          )}
+          )} */}
 
-          <p className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md">
-            <TbFileExport />
-            Export
-          </p>
+          <div className="relative">
+            {/* Export Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setExportOpen((prev) => !prev);
+              }}
+              className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md"
+            >
+              <TbFileExport />
+              Export
+            </button>
+
+            {/* Dropdown */}
+            {exportOpen && (
+              <div className="absolute right-0 mt-2 w-36 rounded-md shadow-lg z-50 bg-white dark:text-white text-black dark:bg-layout-dark border dark:border-gray-700">
+                <button
+                  onClick={() => {
+                    exportLeadsToPDF(filteredLeads);
+                    setExportOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Export PDF
+                </button>
+
+                <button
+                  onClick={() => {
+                    exportLeadsToExcel(filteredLeads);
+                    setExportOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Export Excel
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* ✅ Date Filter (same as Tasks) */}
           <div className="cursor-pointer flex items-center gap-3 dark:text-white dark:bg-layout-dark bg-layout-light rounded-md">
@@ -182,15 +299,21 @@ const Leads_Tab = ({ user }) => {
                 />
               </th>
               <th className="p-4">S.no</th>
-              {["Lead ID", "Lead Type", "Name", "Age", "Weight", "Circle", "BD Name"].map(
-                (heading) => (
-                  <th key={heading} className="p-5">
-                    <h1 className="flex items-center justify-center gap-1">
-                      {heading} <HiArrowsUpDown className="dark:text-white" />
-                    </h1>
-                  </th>
-                )
-              )}
+              {[
+                "Lead ID",
+                "Lead Type",
+                "Name",
+                "Age",
+                "Weight",
+                "Circle",
+                "BD Name",
+              ].map((heading) => (
+                <th key={heading} className="p-5">
+                  <h1 className="flex items-center justify-center gap-1">
+                    {heading} <HiArrowsUpDown className="dark:text-white" />
+                  </h1>
+                </th>
+              ))}
               <th className="pr-2 rounded-r-lg">Action</th>
             </tr>
           </thead>

@@ -21,6 +21,11 @@ import usePermission from "../../../hooks/UsePermissions";
 import { useSearch } from "../../../component/SearchBar";
 import NavBar from "../../../component/NavBar";
 
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+
 const Appointment_Tab = ({ user }) => {
   const itemsPerPage = 10;
 
@@ -47,6 +52,7 @@ const Appointment_Tab = ({ user }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [isView, setIsView] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   // ✅ Fetch Appointments
   const fetchAppointments = async () => {
@@ -65,13 +71,12 @@ const Appointment_Tab = ({ user }) => {
   useEffect(() => {
     fetchAppointments();
     // eslint-disable-next-line
-  }, [ createAppointment]);
+  }, [createAppointment]);
 
   const handleEdit = (appointment) => {
     setSelectedAppointment(appointment);
     setEditModalOpen(true);
   };
-
 
   // ✅ Filter + Search Logic
   const filteredData = useMemo(() => {
@@ -90,26 +95,23 @@ const Appointment_Tab = ({ user }) => {
         if (!searchTerm) return true;
         const term = searchTerm.toLowerCase();
         return (
-           item.patient_name?.toLowerCase().includes(term) ||
-        item.surgeon_name?.toLowerCase().includes(term) ||
-        item.status?.toLowerCase().includes(term) ||
-        item.token_id?.toLowerCase().includes(term)
+          item.patient_name?.toLowerCase().includes(term) ||
+          item.surgeon_name?.toLowerCase().includes(term) ||
+          item.status?.toLowerCase().includes(term) ||
+          item.token_id?.toLowerCase().includes(term)
         );
       });
   }, [appointments, filterParams, searchTerm]);
-
 
   const paginatedData = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredData.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredData, currentPage]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterParams, searchTerm]);
 
-    useEffect(() => {
-      setCurrentPage(1);
-    }, [filterParams, searchTerm]);
-
-    
   const STATUS_COLORS = {
     Pending: "text-yellow-500",
     Completed: "text-green-800",
@@ -117,12 +119,77 @@ const Appointment_Tab = ({ user }) => {
     Cancelled: "text-red-800",
   };
 
+  // Export filtered appointments to PDF
+  const exportToPDF = () => {
+    const doc = new jsPDF("l", "mm", "a4"); // Landscape A4
+
+    doc.setFontSize(14);
+    doc.text("Appointments Report", 14, 15);
+
+    autoTable(doc, {
+      startY: 22,
+      head: [
+        [
+          "S.No",
+          "Token ID",
+          "Patient ID",
+          "Patient Name",
+          "Age",
+          "Treatment",
+          "Surgeon",
+          "Coordinator",
+          "Status",
+        ],
+      ],
+      body:filteredData.map((app, index) => [
+        index + 1,
+        app.token_id,
+        app.patient_type === "OPD" ? app.opd_number : app.ipd_number,
+        app.patient_name,
+        app.age,
+        app.treatment,
+        app.surgeon_name,
+        app.medical_coordinator,
+        app.status || "-",
+      ]),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [22, 160, 133], textColor: 255 },
+      alternateRowStyles: { fillColor: [240, 240, 240] },
+      margin: { top: 20 },
+    });
+
+    doc.save("Appointments.pdf");
+  };
+
+  // Export filtered appointments to Excel
+  const exportToExcel = () => {
+    const data = filteredData.map((app) => ({
+      "Token ID": app.token_id,
+      "Patient ID":
+        app.patient_type === "OPD" ? app.opd_number : app.ipd_number,
+      "Patient Name": app.patient_name,
+      Age: app.age,
+      Treatment: app.treatment,
+      Surgeon: app.surgeon_name,
+      Coordinator: app.medical_coordinator,
+      Status: app.status,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Appointments");
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+    const file = new Blob([excelBuffer], { type: "application/octet-stream" });
+    saveAs(file, "appointments.xlsx");
+  };
+
   return (
     <>
-          <NavBar
-        title="Appointment"
-        pagetitle="IPD / OPD Appointment"
-      />
+      <NavBar title="Appointment" pagetitle="IPD / OPD Appointment" />
       {!viewCalendar && (
         <div className="mt-16">
           {/* ---------- Top Action Bar ---------- */}
@@ -146,14 +213,51 @@ const Appointment_Tab = ({ user }) => {
                 Calendar
               </p>
 
-              <p className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md">
-                <TbFileExport />
-                Export
-              </p>
+              <div className="relative" onClick={(e) => e.stopPropagation()}>
+                <p
+                  onClick={() => setExportOpen((prev) => !prev)}
+                  className="cursor-pointer flex items-center gap-1.5 
+               dark:text-white dark:bg-layout-dark bg-layout-light 
+               px-4 py-2 rounded-md"
+                >
+                  <TbFileExport />
+                  Export
+                </p>
 
-              <Filter
-                onFilterChange={setFilterParams}
-              />
+                {exportOpen && (
+                  <div
+                    className="absolute right-0 mt-2 w-44 rounded-md shadow-lg z-50
+                 bg-white dark:bg-layout-dark
+                 border border-gray-200 dark:border-gray-700"
+                  >
+                    <button
+                      onClick={() => {
+                        exportToPDF();
+                        setExportOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm
+                   text-black dark:text-white
+                   hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      Export PDF
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        exportToExcel();
+                        setExportOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm
+                   text-black dark:text-white
+                   hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      Export Excel
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <Filter onFilterChange={setFilterParams} />
             </div>
           </div>
 

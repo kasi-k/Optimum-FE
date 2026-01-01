@@ -14,6 +14,10 @@ import ViewHospital from "./ViewHospital";
 import DeleteModal from "../../../component/DeleteModal";
 import { toast } from "react-toastify";
 import axios from "axios";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 const Hospital = () => {
   const { searchTerm } = useSearch();
@@ -27,6 +31,7 @@ const Hospital = () => {
 
   const [selectedHospital, setSelectedHospital] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const itemsPerPage = 10;
 
@@ -84,6 +89,75 @@ const Hospital = () => {
     inactive: "font-bold text-red-700",
   };
 
+  const exportToPDF = () => {
+    const doc = new jsPDF("l", "mm", "a4");
+
+    doc.setFontSize(14);
+    doc.text("Hospital Report", 14, 15);
+
+    autoTable(doc, {
+      startY: 22,
+      head: [
+        [
+          "S.No",
+          "Hospital Name",
+          "City",
+          "Address",
+          "Specialization",
+          "Contact",
+          "Overdue Amount",
+          "Status",
+        ],
+      ],
+      body: filteredData.map((hospital, index) => [
+        index + 1,
+        hospital.hospital_name,
+        hospital.city,
+        hospital.address,
+        hospital.specialization,
+        hospital.contact,
+        hospital.overdue && hospital.overdue > 0
+          ? `Rs. ${hospital.overdue.toLocaleString()}`
+          : "No Due",
+        hospital.status,
+      ]),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [22, 160, 133] },
+    });
+
+    doc.save("Hospitals.pdf");
+  };
+
+  const exportToExcel = () => {
+    const worksheetData = filteredData.map((hospital, index) => ({
+      "S.No": index + 1,
+      "Hospital Name": hospital.hospital_name,
+      City: hospital.city,
+      Address: hospital.address,
+      Specialization: hospital.specialization,
+      Contact: hospital.contact,
+      "Overdue Amount":
+        hospital.overdue && hospital.overdue > 0 ? hospital.overdue : "No Due",
+      Status: hospital.status,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Hospitals");
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    const fileData = new Blob([excelBuffer], {
+      type: "application/octet-stream",
+    });
+
+    saveAs(fileData, "Hospitals.xlsx");
+  };
+
   return (
     <>
       <div className="relative">
@@ -95,10 +169,48 @@ const Hospital = () => {
             <Plus size={16} />
             Add Hospital
           </p>
-          <p className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md">
-            <TbFileExport />
-            Export
-          </p>
+          <div className="relative">
+            <p
+              onClick={() => setExportOpen((prev) => !prev)}
+              className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md"
+            >
+              <TbFileExport />
+              Export
+            </p>
+
+            {/* 🔽 Dropdown */}
+            {exportOpen && (
+              <div
+                className="absolute right-0 mt-2 w-40 rounded-md shadow-lg z-50
+                    bg-white dark:bg-layout-dark border dark:border-gray-700"
+              >
+                <button
+                  onClick={() => {
+                    exportToPDF();
+                    setExportOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm 
+                   text-black dark:text-white 
+                   hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Export PDF
+                </button>
+
+                <button
+                  onClick={() => {
+                    exportToExcel();
+                    setExportOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm 
+                   text-black dark:text-white 
+                   hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Export Excel
+                </button>
+              </div>
+            )}
+          </div>
+
           <Filter />
         </div>
       </div>

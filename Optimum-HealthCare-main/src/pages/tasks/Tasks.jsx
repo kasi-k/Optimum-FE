@@ -15,7 +15,11 @@ import axios from "axios";
 import { API, formatDate } from "../../Constant";
 import { toast } from "react-toastify";
 import DeleteModal from "../../component/DeleteModal";
-import usePermission from "../../hooks/UsePermissions"; // 👈 Import the hook
+import usePermission from "../../hooks/UsePermissions";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 const Tasks = () => {
   const [tasks, setTasks] = useState([]);
@@ -32,6 +36,8 @@ const Tasks = () => {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [DeleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+
   const [DeleteId, setDeleteId] = useState(null);
   const itemsPerPage = 10;
   const navigate = useNavigate();
@@ -142,6 +148,52 @@ const Tasks = () => {
     setCurrentPage(1);
   }, [searchTerm, filterParams, tasks, users]);
 
+  const exportData = filteredTasks.map((task, index) => ({
+    "S.No": index + 1,
+    "Task Title": task.task_title,
+    "Start Date": formatDate(task.start_date),
+    "Due Date": formatDate(task.due_date),
+    "Assigned To": task.assigned_to_name,
+    Status: task.status,
+  }));
+
+ const exportToPDF = () => {
+  const doc = new jsPDF();
+
+  autoTable(doc, {
+    head: [["S.No", "Task", "Start Date", "Due Date", "Assigned To", "Status"]],
+    body: filteredTasks.map((task, index) => [
+      index + 1,
+      task.task_title,
+      formatDate(task.start_date),
+      formatDate(task.due_date),
+      task.assigned_to_name,
+      task.status,
+    ]),
+  });
+
+  doc.save("Tasks.pdf");
+};
+
+
+  const exportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Tasks");
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    const data = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    saveAs(data, "Tasks_Report.xlsx");
+  };
+
   return (
     <>
       <NavBar title="Tasks" pagetitle="Tasks" />
@@ -161,12 +213,42 @@ const Tasks = () => {
           </button>
         )}
 
-        {canExport && (
-          <p className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md">
-            <TbFileExport />
-            Export
-          </p>
-        )}
+     {canExport && (
+  <div className="relative">
+    <button
+      onClick={() => setExportOpen(!exportOpen)}
+      className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md "
+    >
+      <TbFileExport />
+      Export
+    </button>
+
+    {exportOpen && (
+      <div className="absolute right-0 mt-2 bg-white dark:bg-layout-dark shadow-lg dark:text-white text-black  border dark:border-gray-700 rounded-md z-50 w-40">
+        <button
+          onClick={() => {
+            exportToPDF();
+            setExportOpen(false);
+          }}
+          className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+        >
+          Export PDF
+        </button>
+
+        <button
+          onClick={() => {
+            exportToExcel();
+            setExportOpen(false);
+          }}
+          className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+        >
+          Export Excel
+        </button>
+      </div>
+    )}
+  </div>
+)}
+
 
         <div className="cursor-pointer flex items-center gap-3 dark:text-white dark:bg-layout-dark bg-layout-light rounded-md">
           <Filter onFilterChange={setFilterParams} />
@@ -231,7 +313,7 @@ const Tasks = () => {
                           className="cursor-pointer bg-[#BAFFBA] text-green-600 w-fit rounded-sm py-1.5 px-1.5"
                           onClick={() =>
                             navigate(`/tasks/viewtasks`, {
-                              state: { task: data},
+                              state: { task: data },
                             })
                           }
                         >
