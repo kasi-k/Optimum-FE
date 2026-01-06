@@ -1,79 +1,136 @@
 import React from "react";
 import { IoClose } from "react-icons/io5";
+import { useForm } from "react-hook-form";
+import axios from "axios";
 
-const AddFollowUp = ({ onclose }) => {
+import { toast } from "react-toastify";
+import { API } from "../../../Constant";
+
+const AddFollowUp = ({ onclose, selectedLead,onsuccess}) => {
+    const  logindetails = JSON.parse(localStorage.getItem("employee"));
+    const user = logindetails?.name;
+
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    defaultValues: {
+      follow_up_date: "",
+      notes: "",
+    },
+  });
+
+  const onSubmit = async (data) => {
+    try {
+      await axios.post(`${API}/lead/followup/add`, {
+        lead_id: selectedLead.lead_id,
+        follow_up_date: data.follow_up_date,
+        notes: data.notes,
+        createdBy: user|| "Admin",
+      });
+      onsuccess();
+      toast.success("Follow-up added successfully");
+      onclose();
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Something went wrong");
+    }
+  };
+
   return (
-    <div className="font-layout-font fixed inset-0 grid z-20 justify-center items-center backdrop-blur-xs">
-      <div className="mx-2 p-4 shadow-lg dark:bg-popup-gray bg-layout-light dark:bg-layout-dark rounded-lg  relative">
-        <div className="grid p-4 text-layout_text-light dark:text-layout_text-dark">
-          <button
-            onClick={onclose}
-            className="place-self-end dark:bg-popup-gray bg-white dark:bg-layout-dark absolute rounded-full -top-5 -right-4 lg:shadow-md md:shadow-md shadow-none lg:py-3 md:py-3 py-0 lg:px-3 md:px-3 px-0"
-          >
-            <IoClose className="size-[24px]" />
-          </button>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 backdrop-blur-sm">
+      <div className="relative w-full max-w-lg mx-4 rounded-lg shadow-lg dark:bg-layout-dark bg-layout-light">
 
-          <h1 className="text-center font-semibold text-xl py-2 mb-4 dark:text-white text-black">Add Follow-up</h1>
+        {/* Close Button */}
+        <button
+          onClick={onclose}
+          className="absolute -top-4 -right-4 bg-white dark:bg-layout-dark rounded-full p-2 shadow"
+        >
+          <IoClose size={22} />
+        </button>
 
-          <form className="grid grid-cols-1 sm:grid-cols-2 space-y-2 gap-4 dark:text-white text-black">
-          
-            <div className="flex col-span-2 gap-5 justify-between items-center">
-              <label className=" ">Lead name</label>
+        <div className="p-6 dark:text-white text-black">
+          <h1 className="text-center font-semibold text-xl mb-6">
+            Add Follow-up
+          </h1>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+
+            {/* Lead Name */}
+            <div className="flex justify-between items-center gap-4">
+              <label className="text-sm">Lead Name</label>
               <input
                 type="text"
-                placeholder="name"
-                className="p-2 rounded-md w-72 bg-transparent border border-[#454545] dark:placeholder:text-white placeholder:text-black"
+                value={selectedLead?.name || ""}
+                disabled
+                className="w-72 p-2 rounded-md bg-transparent border border-[#454545] opacity-70"
               />
             </div>
 
-         
-            <div className="flex col-span-2 gap-5 justify-between items-center ">
-              <label className="">Follow up Date</label>
-              <input
-                type="date"
-                placeholder="Start Date"
-                className="p-2 rounded-md w-72 bg-transparent border border-[#454545] dark:placeholder:text-white placeholder:text-black"
-              />
+            {/* Follow-up Date */}
+            <div className="flex justify-between items-center gap-4">
+              <label className="text-sm">Follow-up Date</label>
+              <div className="w-72">
+                <input
+                  type="date"
+                  {...register("follow_up_date", {
+                    required: "Follow-up date is required",
+                  })}
+                  className="w-full p-2 rounded-md bg-transparent border border-[#454545]"
+                />
+                {errors.follow_up_date && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.follow_up_date.message}
+                  </p>
+                )}
+              </div>
             </div>
 
-            {/* <div className="flex col-span-2 gap-5 justify-between items-center ">
-              <label className="">Schedule Follow up</label>
-              <input
-                type="date"
-                placeholder="End Date"
-                className="p-2 rounded-md w-72 bg-transparent border border-[#454545] dark:placeholder:text-white placeholder:text-black"
-              />
-            </div>
-            <div className="flex col-span-2 gap-5 justify-between items-center ">
-              <label className=" ">Convert Sales</label>
-              <input
-                type="text"
-                placeholder="convert to sales"
-                className="p-2 rounded-md w-72 bg-transparent border border-[#454545] dark:placeholder:text-white placeholder:text-black"
-              />
-            </div> */}
-            <div className="flex col-span-2 gap-5 justify-between items-center">
-              <label className="">Notes</label>
-              <textarea
-              rows={5}
-                placeholder="notes"
-                className="p-2 rounded-md w-72 bg-transparent border border-[#454545] dark:placeholder:text-white placeholder:text-black"
-              />
+            {/* Notes */}
+            <div className="flex justify-between items-start gap-4">
+              <label className="text-sm pt-2">Notes</label>
+              <div className="w-72">
+                <textarea
+                  rows={4}
+                  placeholder="Enter notes"
+                  {...register("notes", {
+                    minLength: {
+                      value: 5,
+                      message: "Notes must be at least 5 characters",
+                    },
+                  })}
+                  className="w-full p-2 rounded-md bg-transparent border border-[#454545]"
+                />
+                {errors.notes && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.notes.message}
+                  </p>
+                )}
+              </div>
             </div>
 
-           
+            {/* Actions */}
+            <div className="flex justify-end gap-4 mt-6 text-sm">
+              <button
+                type="button"
+                onClick={onclose}
+                className="border border-select_layout-dark text-select_layout-dark px-6 py-1.5 rounded-sm"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-select_layout-dark text-white px-6 py-1.5 rounded-sm disabled:opacity-50"
+              >
+                {isSubmitting ? "Saving..." : "Save"}
+              </button>
+            </div>
+
           </form>
-          <div className="w-full flex justify-end items-center gap-4 mt-4 mr-6 text-sm font-normal">
-            <p
-              onClick={onclose}
-              className="cursor-pointer border border-select_layout-dark text-select_layout-dark px-6 py-1.5 rounded-sm"
-            >
-              Cancel
-            </p>
-            <p className="cursor-pointer bg-select_layout-dark dark:text-black text-white px-6 py-1.5 rounded-sm">
-              Save
-            </p>
-          </div>
         </div>
       </div>
     </div>

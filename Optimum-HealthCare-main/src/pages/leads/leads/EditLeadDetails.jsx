@@ -59,7 +59,7 @@ const EditLeadDetails = ({ onclose }) => {
               </select>
             </div>
 
-            <div className="flex col-span-2 gap-5 justify-between items-center ">
+            {/* <div className="flex col-span-2 gap-5 justify-between items-center ">
               <label className="font-medium">Assign to Sales Person</label>
               <input
                 type="text"
@@ -75,7 +75,7 @@ const EditLeadDetails = ({ onclose }) => {
                 placeholder="Name"
                 className="p-2 rounded-md w-72 bg-transparent border border-gray-600 dark:placeholder:text-white placeholder:text-black"
               />
-            </div>
+            </div> */}
           </form>
 
           {/* Buttons */}

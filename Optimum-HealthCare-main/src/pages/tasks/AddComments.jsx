@@ -60,7 +60,7 @@ const AddComments = ({ onclose, task, onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-20 grid justify-center items-center backdrop-blur-xs">
+    <div className="fixed inset-0 z-20 grid justify-center items-center backdrop-blur-xs dark:text-white text-black">
       <div className="mx-2 p-4 shadow-lg dark:bg-popup-gray bg-layout-light dark:bg-layout-dark rounded-lg drop-shadow-2xl lg:w-[500px] md:w-[500px] w-96 relative">
         <button
           onClick={onclose}

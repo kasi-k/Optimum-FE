@@ -11,8 +11,8 @@ import { API } from "../../../Constant";
 const schema = yup.object().shape({
   channelName: yup.string().required("Channel Name is required"),
   channel: yup.string().required("Channel is required"),
-  startDate: yup.string().required("Start Date is required"),
-  endDate: yup.string().required("End Date is required"),
+  startDate: yup.string(),
+  endDate: yup.string(),
   budget: yup.number().typeError("Budget must be a number").required("Budget is required").positive("Budget must be positive"),
 });
 

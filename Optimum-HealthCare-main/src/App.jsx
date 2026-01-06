@@ -24,6 +24,8 @@ import ViewTasks from "./pages/tasks/ViewTasks";
 import { ToastContainer } from "react-toastify";
 import AutoLogout from "./pages/auth/AutoLogout";
 import Appointment_Tab from "./pages/appointment/appointment/Appointment_Tab";
+import Leads_Tab from "./pages/leads/leads/Leads_Tab";
+import Campaign from "./pages/leads/campaign/Campaign";
 
 const AppContent = () => {
   const { showWarning, warningCountdown, stayLoggedIn } = AutoLogout();
@@ -76,13 +78,12 @@ const AppContent = () => {
           <Route path="/finance" element={<Finance />} />
           {/* <Route path="/editgmb" element={<EditGmbSet />} /> */}
           <Route path="/leads">
-            <Route index element={<Leads />} />
-            <Route path="viewcampaign">
-              <Route index element={<ViewCampaign />} />
-            </Route>
-            <Route path="viewleads">
-              <Route index element={<ViewLeads />} />
-            </Route>
+            <Route index element={<Leads_Tab />} />
+            <Route path="viewleads" element={<ViewLeads />} />
+          </Route>
+          <Route path="/campaign">
+            <Route index element={<Campaign />} />
+            <Route path="viewcampaign" element={<ViewCampaign />} />
           </Route>
           <Route path="/association" element={<Association />} />
           <Route path="/reports" element={<Report />} />

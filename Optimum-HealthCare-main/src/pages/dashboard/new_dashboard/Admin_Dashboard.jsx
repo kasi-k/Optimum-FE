@@ -14,13 +14,131 @@ import {
   Cell,
 } from "recharts";
 import { FaStar } from "react-icons/fa";
+import axios from "axios";
+import { API } from "../../../Constant";
 
 const Admin_Dashboard = () => {
   const [isDark, setIsDark] = useState(false);
+  const [leadCount, setLeadCount] = useState(0);
+  const [ipdCount, setIpdCount] = useState(0);
+  const [opdCount, setOpdCount] = useState(0);
+  const [campaignData, setCampaignData] = useState([]);
+  const [performers, setPerformers] = useState([]);
+  const [newLeads, setNewLeads] = useState([]);
+  const [newAppointments, setNewAppointments] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+
+  const data = JSON.parse(localStorage.getItem("employee"));
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+
+      const [leadsRes, appointmentRes, campaignRes] = await Promise.all([
+        axios.get(`${API}/lead/getallleads`, {
+          params: { role_name: data.role.role_name, name: data.name },
+        }),
+        axios.get(`${API}/appointment/getallappointments`),
+        axios.get(`${API}/campaign/allcampaigns`),
+      ]);
+      console.log(leadsRes);
+
+      const leadCount = leadsRes.data?.data?.length || 0;
+
+      setLeadCount(leadCount);
+
+      const appointments = appointmentRes.data?.data || [];
+
+      const ipdCount = appointments.filter(
+        (item) => item.patient_type === "IPD"
+      ).length;
+
+      const opdCount = appointments.filter(
+        (item) => item.patient_type === "OPD"
+      ).length;
+
+      setIpdCount(ipdCount);
+      setOpdCount(opdCount);
+
+      const buildChannelLeadGraph = (campaigns) => {
+        const channelMap = {};
+
+        campaigns.forEach((c) => {
+          const channel = c.channel?.toLowerCase() || "other";
+          const leadCount = c.leads?.length || 0;
+
+          channelMap[channel] = (channelMap[channel] || 0) + leadCount;
+        });
+
+        return Object.entries(channelMap).map(([key, value]) => ({
+          name: key.charAt(0).toUpperCase() + key.slice(1),
+          value,
+        }));
+      };
+
+      const campaigns = campaignRes.data?.data || [];
+
+      const channelLeadData = buildChannelLeadGraph(campaigns);
+
+      setCampaignData(channelLeadData);
+
+      const leads = leadsRes.data?.data || [];
+
+      // Build top performers with rating
+      const performerMap = {};
+
+      leads.forEach((lead) => {
+        const consultant = lead.bdname || "Unknown";
+        if (!performerMap[consultant])
+          performerMap[consultant] = { total: 0, converted: 0 };
+
+        performerMap[consultant].total += 1;
+        if (lead.status.toLowerCase() === "converted") {
+          performerMap[consultant].converted += 1;
+        }
+      });
+
+      const topPerformers = Object.entries(performerMap)
+        .map(([name, val]) => ({
+          name,
+          dept: "", // optional if you want department
+          rating:
+            val.total > 0
+              ? parseFloat(((val.converted / val.total) * 5).toFixed(1))
+              : 0,
+        }))
+        .sort((a, b) => b.rating - a.rating) // sort by rating
+        .slice(0, 5); // take top 5
+
+      setPerformers(topPerformers);
+
+      // Sort by createdAt descending (latest first)
+      const sortedLeads = leads.sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
+
+      // Take top 5
+      setNewLeads(sortedLeads.slice(0, 5));
+
+      const sortedAppointments = appointments
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 5); // latest 5
+
+      setNewAppointments(sortedAppointments);
+    } catch (err) {
+      console.error("Failed to fetch top performers", err);
+    }
+  };
+
   const statsData = [
-    { title: "Leads", value: "1,245", footer: "Total Leads" },
-    { title: "In Patient Details", value: "1,245", footer: "Total IPD" },
-    { title: "Out Patient Details", value: "1,245", footer: "Total OPD" },
+    { title: "Leads", value: leadCount, footer: "Total Leads" },
+    { title: "In Patient Details", value: ipdCount, footer: "Total IPD" },
+    { title: "Out Patient Details", value: opdCount, footer: "Total OPD" },
     { title: "Total Revenue", value: "1,245", footer: "Total Revenue" },
     { title: "Pending Payment", value: "1,245", footer: "Pending Payment" },
     { title: "Total Expense", value: "1,245", footer: "Total Expense" },
@@ -41,11 +159,11 @@ const Admin_Dashboard = () => {
     { name: "Dec", value: 85 },
   ];
 
-  const campaignData = [
-    { name: "Instagram", value: 50 },
-    { name: "X", value: 30 },
-    { name: "Facebook", value: 20 },
-  ];
+  // // const campaignData = [
+  // //   { name: "Instagram", value: 50 },
+  // //   { name: "X", value: 30 },
+  // //   { name: "Facebook", value: 20 },
+  // ];
   const COLORS = ["#F39C12", "#FF6384", "#FFCE56"];
 
   const leads = [
@@ -100,13 +218,13 @@ const Admin_Dashboard = () => {
     return () => observer.disconnect();
   }, []);
 
-  const performers = [
-    { name: "Dr. Olivia Bennett", dept: "Neurology", rating: 4.9 },
-    { name: "Dr. Ethan Clark", dept: "Cardiology", rating: 4.8 },
-    { name: "Dr. Sophia Reed", dept: "Orthopedics", rating: 4.7 },
-    { name: "Dr. Noah Carter", dept: "Dermatology", rating: 4.6 },
-    { name: "Dr. Emma Hayes", dept: "Pediatrics", rating: 4.5 },
-  ];
+  // const performers = [
+  //   { name: "Dr. Olivia Bennett", dept: "Neurology", rating: 4.9 },
+  //   { name: "Dr. Ethan Clark", dept: "Cardiology", rating: 4.8 },
+  //   { name: "Dr. Sophia Reed", dept: "Orthopedics", rating: 4.7 },
+  //   { name: "Dr. Noah Carter", dept: "Dermatology", rating: 4.6 },
+  //   { name: "Dr. Emma Hayes", dept: "Pediatrics", rating: 4.5 },
+  // ];
 
   return (
     <div>
@@ -200,45 +318,78 @@ const Admin_Dashboard = () => {
             <div className="md:col-span-1 lg:col-span-4 dark:bg-layout-dark bg-layout-light dark:text-white text-black p-4 rounded-xl">
               <h2 className="font-semibold mb-3">New Leads</h2>
               <div className="space-y-2">
-                {leads.map((lead, idx) => (
+                {newLeads.map((lead, idx) => (
                   <div
                     key={idx}
                     className="dark:bg-black/30 bg-gray-200 rounded-lg p-2 flex justify-between"
                   >
                     <div className="text-sm space-y-1">
-                      <p>{lead.id}</p>
+                      <p>{lead.lead_id}</p>
                       <p className="font-semibold">
                         Patient:{" "}
-                        <span className="font-normal">{lead.patient}</span>
+                        <span className="font-normal">{lead.name}</span>
                       </p>
-                      <p>Contact no: {lead.contact}</p>
+                      <p>Contact no: {lead.phone}</p>
                     </div>
-                    <p className="text-sm">
-                      Doctor: <span className="font-normal">{lead.doctor}</span>
-                    </p>
+                    {/* <p className="text-sm">
+                      Doctor:{" "}
+                      <span className="font-normal">{lead.consultant}</span>
+                    </p> */}
                   </div>
                 ))}
               </div>
             </div>
             <div className="md:col-span-1 lg:col-span-4 dark:bg-layout-dark bg-layout-light dark:text-white text-black p-4 rounded-xl">
               <h2 className="font-semibold mb-3">Upcoming IPD/OPD</h2>
+
               <div className="space-y-2">
-                {leads.map((lead, idx) => (
+                {newAppointments.map((appt, idx) => (
                   <div
                     key={idx}
                     className="dark:bg-black/30 bg-gray-200 rounded-lg p-2 flex justify-between"
                   >
                     <div className="text-sm space-y-1">
-                      <p>{lead.id}</p>
-                      <p className="font-semibold">
+                      <p>
                         Patient:{" "}
-                        <span className="font-normal">{lead.patient}</span>
+                        <span className="font-semibold">
+                          {appt.patient_name}
+                        </span>
                       </p>
-                      <p>Contact no: {lead.contact}</p>
+                      <p>
+                        Type:{" "}
+                        <span className="font-normal">{appt.patient_type}</span>
+                      </p>
+                      {/* <p>
+                        Contact:{" "}
+                        <span className="font-normal">{appt.phone}</span>
+                      </p> */}
+                      <p>
+                        Treatment:{" "}
+                        <span className="font-normal">{appt.treatment}</span>
+                      </p>
                     </div>
-                    <p className="text-sm">
-                      Doctor: <span className="font-normal">{lead.doctor}</span>
-                    </p>
+                    <div className="text-sm text-right">
+                      <p>
+                        Doctor:{" "}
+                        <span className="font-normal">
+                          {appt.surgeon_name || appt.consultant}
+                        </span>
+                      </p>
+                      <p>
+                        Date:{" "}
+                        <span className="font-normal">
+                          {new Date(
+                            appt.op_date || appt.date
+                          ).toLocaleDateString()}
+                        </span>
+                      </p>
+                      <p>
+                        Time:{" "}
+                        <span className="font-normal">
+                          {appt.op_time || "-"}
+                        </span>
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -250,7 +401,10 @@ const Admin_Dashboard = () => {
             <h2 className="font-semibold mb-3">Top 5 Performer of the Week</h2>
             <div className="space-y-3">
               {performers.map((doc, idx) => (
-                <div key={idx} className="flex justify-between items-center dark:bg-overall_bg-dark bg-gray-200 px-2 rounded-md py-1">
+                <div
+                  key={idx}
+                  className="flex justify-between items-center dark:bg-overall_bg-dark bg-gray-200 px-2 rounded-md py-1"
+                >
                   <p className="flex flex-col text-sm">
                     <span>{doc.name}</span>
                     <span className="text-gray-400">{doc.dept}</span>

@@ -18,6 +18,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import NavBar from "../../../component/NavBar";
 
 
 
@@ -211,9 +212,12 @@ const exportLeadsToExcel = (leads) => {
 
   return (
     <>
-      {/* ---------- Top Action Bar ---------- */}
-      <div className="relative">
-        <div className="font-layout-font absolute -top-13 right-0 flex justify-end items-center gap-2 pb-2">
+      <NavBar
+      title="Leads"
+      pagetitle="Leads Table"
+      />
+      
+        <div className="font-layout-font  flex justify-end items-center gap-2 pb-2">
           {canEdit && (
             <button
               onClick={() => selectedRows.length > 0 && setTransferLeads(true)}
@@ -283,7 +287,7 @@ const exportLeadsToExcel = (leads) => {
             <Filter onFilterChange={setFilterParams} />
           </div>
         </div>
-      </div>
+ 
 
       {/* ---------- Table ---------- */}
       <div className="font-layout-font overflow-auto no-scrollbar">

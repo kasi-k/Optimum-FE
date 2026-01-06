@@ -153,7 +153,7 @@ const Create_Appointment = ({ onclose, lead }) => {
         campaign_id:lead?.campaign_id,
         lead_id: lead?.lead_id, // 🔹 Replace campaign_id with lead_id
       };
-console.log(payload);
+
 
       await axios.post(`${API}/appointment/create`, payload);
       toast.success(`${patientType} created successfully`);

@@ -12,7 +12,7 @@ import {
   Clipboard,
   DollarSign,
 } from "lucide-react";
-import { TbAddressBook } from "react-icons/tb";
+import { TbAddressBook, TbBrandCampaignmonitor } from "react-icons/tb";
 import { HiOutlineClipboardList } from "react-icons/hi";
 import Logo from "../../assets/images/icon.png";
 import Logo_L from "../../assets/images/Logo(light).png";
@@ -52,6 +52,12 @@ const Layout = () => {
       icon: <HiOutlineClipboardList size={23} />,
       to: "/leads",
       feature: "Leads",
+    },
+    {
+      title: "Campaign",
+      icon: <TbBrandCampaignmonitor size={23} />,
+      to: "/campaign",
+      feature: "Campaigns",
     },
     {
       title: "Association",

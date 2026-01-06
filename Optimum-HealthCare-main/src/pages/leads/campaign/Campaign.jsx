@@ -15,6 +15,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import NavBar from "../../../component/NavBar";
 
 const Campaign = ({ user }) => {
   const { searchTerm } = useSearch();
@@ -161,9 +162,12 @@ const Campaign = ({ user }) => {
 
   return (
     <>
-      {/* ---------- Top Action Bar ---------- */}
-      <div className="relative">
-        <div className="font-layout-font absolute -top-13 right-0 flex justify-end items-center gap-2 pb-2">
+      <NavBar
+      title="Campaigns"
+      pagetitle="Campaign Table"
+      />
+     
+        <div className="font-layout-font flex justify-end items-center gap-2 pb-2">
           {canCreate && (
             <p
               onClick={() => setCreateCampaign(true)}
@@ -217,7 +221,7 @@ const Campaign = ({ user }) => {
             <Filter onFilterChange={setFilterParams} />
           </div>
         </div>
-      </div>
+     
 
       {/* ---------- Table ---------- */}
       <div className="font-layout-font overflow-auto no-scrollbar">
