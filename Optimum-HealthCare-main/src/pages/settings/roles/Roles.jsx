@@ -31,7 +31,7 @@ const Roles = () => {
   const fetchRoles = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/role/getallroles`, {
+      const res = await axios.get(`${API}/role/all`, {
         params: {
           page: currentPage,
           limit: itemsPerPage,
@@ -72,7 +72,7 @@ const Roles = () => {
 
   const confirmDelete = async () => {
     try {
-      await axios.delete(`${API}/role/deletebyroleid?roleId=${selectedRole}`);
+      await axios.delete(`${API}/role/delete?roleId=${selectedRole}`);
       toast.success("Role deleted successfully");
       fetchRoles();
     } catch (err) {

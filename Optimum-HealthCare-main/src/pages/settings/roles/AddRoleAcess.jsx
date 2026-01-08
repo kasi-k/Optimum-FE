@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -6,10 +6,18 @@ import Title from "../../../component/Title";
 import { API } from "../../../Constant";
 
 const AddRoles = () => {
-  const [roleName, setRoleName] = useState("");
   const [createdBy, setCreatedBy] = useState("System");
   const [selectedSettings, setSelectedSettings] = useState({});
   const [permissions, setPermissions] = useState({});
+
+  const [departments, setDepartments] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [roles, setRoles] = useState([]);
+
+  const [selectedDepartment, setSelectedDepartment] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedRole, setSelectedRole] = useState("");
+
   const navigate = useNavigate();
 
   const settingsOptions = [
@@ -25,14 +33,59 @@ const AddRoles = () => {
     "Settings",
   ];
 
-  const permissionOptions = [
-    "All",
-    "View",
-    "Create",
-    "Edit",
-    "Delete",
-    "Download",
-  ];
+  const permissionOptions = ["All", "View", "Create", "Edit", "Delete", "Download"];
+
+  // Fetch departments on mount
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const res = await axios.get(`${API}/department/department`);
+       
+        
+        setDepartments(res.data.data);
+      } catch (error) {
+        console.error("Error fetching departments", error);
+      }
+    };
+    fetchDepartments();
+  }, []);
+
+  // Fetch categories when department changes
+  useEffect(() => {
+    if (!selectedDepartment) {
+      setCategories([]);
+      setSelectedCategory("");
+      return;
+    }
+    const fetchCategories = async () => {
+      try {
+        const res = await axios.get(`${API}/category/getcategoriesbydepartment?departmentId=${selectedDepartment}`);
+         console.log(res);
+        setCategories(res.data.data);
+      } catch (error) {
+        console.error("Error fetching categories", error);
+      }
+    };
+    fetchCategories();
+  }, [selectedDepartment]);
+
+  // Fetch roles when category changes
+  useEffect(() => {
+    if (!selectedCategory) {
+      setRoles([]);
+      setSelectedRole("");
+      return;
+    }
+    const fetchRoles = async () => {
+      try {
+        const res = await axios.get(`${API}/rolemaster/by-category/${selectedCategory}`);
+        setRoles(res.data.data);
+      } catch (error) {
+        console.error("Error fetching roles", error);
+      }
+    };
+    fetchRoles();
+  }, [selectedCategory]);
 
   // Toggle Settings Checkbox
   const toggleSetting = (setting) => {
@@ -57,80 +110,69 @@ const AddRoles = () => {
       let updatedPermissions = prev[setting] || [];
 
       if (permission === "All") {
-        // If "All" is checked, select all permissions
         updatedPermissions = checked ? permissionOptions.slice(1) : [];
       } else {
-        // Add or remove individual permission
         updatedPermissions = checked
           ? [...updatedPermissions, permission]
           : updatedPermissions.filter((p) => p !== permission);
-
-        // If "All" was checked and one is unchecked, uncheck "All"
-        if (!checked) {
-          updatedPermissions = updatedPermissions.filter((p) => p !== "All");
-        }
       }
 
-      // If all individual permissions are checked, check "All" again
-      if (updatedPermissions.length === permissionOptions.length - 1) {
-        updatedPermissions = ["All", ...updatedPermissions];
+      // Auto-check "All" if all individual permissions selected
+      if (permissionOptions.slice(1).every((p) => updatedPermissions.includes(p))) {
+        updatedPermissions = ["All", ...permissionOptions.slice(1)];
+      } else {
+        updatedPermissions = updatedPermissions.filter((p) => p !== "All");
       }
 
       return { ...prev, [setting]: updatedPermissions };
     });
   };
 
+  // Save Role Access
   const handleSave = async () => {
-    const accessLevels = Object.entries(permissions).map(
-      ([feature, perms]) => ({
-        feature,
-        permissions: perms,
-      })
-    );
+    if (!selectedDepartment || !selectedCategory || !selectedRole) {
+      toast.error("Please select department, category, and role");
+      return;
+    }
 
-    const roleAccessLevel = {
-      role_name: roleName.toLowerCase(),
+    const accessLevels = Object.entries(permissions).map(([feature, perms]) => ({
+      feature,
+      permissions: perms || [],
+    }));
+
+    const payload = {
+      role_name: selectedRole.toLowerCase(),
+      department_id: selectedDepartment,
+      department_name: departments.find((d) => d._id === selectedDepartment)?.department_name || "",
+      category_name: categories.find((c) => c._id === selectedCategory)?.category_name || "",
+      category_id: selectedCategory,
       accessLevels,
       created_by_user: createdBy,
       status: "active",
     };
 
     try {
-      const response = await axios.post(
-        `${API}/role/addrole`,
-        roleAccessLevel,
-        {}
-      );
-
+      const response = await axios.post(`${API}/role/add`, payload);
       if (response.status === 200) {
-        toast.success("Role created Successfully");
+        toast.success("Role created successfully");
         navigate("/setting");
       } else {
-        console.error("Error in posting data", response);
-        toast.error("Failed to Upload");
+        toast.error("Failed to save role");
       }
     } catch (error) {
-      console.error("Error in posting data", error);
+      console.error("Error saving role", error);
+      toast.error("Error saving role");
     }
-
-    // console.log(
-    //   "Role Access Level JSON:",
-    //   JSON.stringify(roleAccessLevel, null, 2)
-    // );
   };
 
   return (
     <>
-      <div className="flex justify-between items-center  mb-2">
-        <Title
-          title="Settings"
-          sub_title="Role Access"
-          page_title="Add role Access"
-        />
+      <div className="flex justify-between items-center mb-2">
+        <Title title="Settings" sub_title="Role Access" page_title="Add Role Access" />
         <div className="flex gap-3">
           <p
             onClick={() => navigate("..")}
-            className="cursor-pointer  border dark:border-white text-white border-darkest-blue px-8 py-2 rounded-sm"
+            className="cursor-pointer border dark:border-white text-white border-darkest-blue px-8 py-2 rounded-sm"
           >
             Cancel
           </p>
@@ -142,43 +184,89 @@ const AddRoles = () => {
           </p>
         </div>
       </div>
-      <div className="flex items-center  gap-10 mb-4">
-        <span className="font-semibold dark:text-white text-black ">
-          Role name
-        </span>
-        <input
-          type="text"
-          value={roleName}
-          onChange={(e) => setRoleName(e.target.value)}
-          className="  px-3 py-1.5 rounded-md outline-none dark:bg-layout-dark bg-white text-black dark:text-white"
-        />
-        <span className="font-semibold ">Created By</span>
+
+      {/* Three Dropdowns */}
+      <div className="flex items-center gap-6 mb-4">
+        {/* Department */}
+        <div>
+          <span className="font-semibold dark:text-white text-black">Department</span>
+          <select
+            value={selectedDepartment}
+            onChange={(e) => setSelectedDepartment(e.target.value)}
+            className="px-3 py-1.5 rounded-md outline-none dark:bg-layout-dark bg-white text-black dark:text-white"
+          >
+            <option value="">Select Department</option>
+            {departments.map((dept) => (
+              <option key={dept._id} value={dept._id}>
+                {dept.department_name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Category */}
+        <div>
+          <span className="font-semibold dark:text-white text-black">Category</span>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-3 py-1.5 rounded-md outline-none dark:bg-layout-dark bg-white text-black dark:text-white"
+          >
+            <option value="">Select Category</option>
+            {categories.map((cat) => (
+              <option key={cat._id} value={cat._id}>
+                {cat.category_name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Role */}
+        <div>
+          <span className="font-semibold dark:text-white text-black">Role</span>
+          <select
+            value={selectedRole}
+            onChange={(e) => setSelectedRole(e.target.value)}
+            disabled={!roles.length}
+            className="px-3 py-1.5 rounded-md outline-none dark:bg-layout-dark bg-white text-black dark:text-white"
+          >
+            <option value="">Select Role</option>
+            {roles.map((role) => (
+              <option key={role._id} value={role.role_name}>
+                {role.role_name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Created By */}
+      <div className="flex items-center gap-10 mb-4">
+        <span className="font-semibold">Created By</span>
         <input
           type="text"
           value={createdBy}
           onChange={(e) => setCreatedBy(e.target.value)}
-          className="  px-3 py-1.5 rounded-md outline-none dark:bg-layout-dark dark:text-white
-           bg-white text-black"
+          className="px-3 py-1.5 rounded-md outline-none dark:bg-layout-dark bg-white text-black dark:text-white"
         />
       </div>
 
-      <div className="dark:bg-layout-dark dark:text-white bg-white p-10  rounded-xl  ">
-        <div className="grid grid-cols-3 gap-2 ">
+      {/* Settings & Permissions */}
+      <div className="dark:bg-layout-dark dark:text-white bg-white p-10 rounded-xl">
+        <div className="grid grid-cols-3 gap-2">
+          {/* Settings */}
           <div className="border-r-2 p-3 h-80">
-            <h2 className="text-lg font-medium mb-4 w-1/2 text-center">
-              Settings
-            </h2>
+            <h2 className="text-lg font-medium mb-4 w-1/2 text-center">Settings</h2>
             {settingsOptions.map((setting) => (
-              <div key={setting} className="flex items-center  mb-3">
-                <label className="flex items-center gap-2  cursor-pointer">
+              <div key={setting} className="flex items-center mb-3">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <label className="relative flex items-center cursor-pointer">
                     <input
                       type="checkbox"
                       checked={!!selectedSettings[setting]}
                       onChange={() => toggleSetting(setting)}
-                      className="appearance-none w-5 h-5 border-2 dark:border-white border-darkest-blue rounded-md checked:bg-select_layout-dark  checked:border-transparent focus:outline-none transition-all duration-200"
+                      className="appearance-none w-5 h-5 border-2 dark:border-white border-darkest-blue rounded-md checked:bg-select_layout-dark checked:border-transparent focus:outline-none transition-all duration-200"
                     />
-                    {/* Custom Checkmark */}
                     <span className="absolute w-5 h-5 flex justify-center items-center pointer-events-none">
                       {selectedSettings[setting] && (
                         <svg
@@ -188,26 +276,22 @@ const AddRoles = () => {
                           strokeWidth="3"
                           viewBox="0 0 24 24"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M5 13l4 4L19 7"
-                          ></path>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"></path>
                         </svg>
                       )}
                     </span>
                   </label>
-
                   {setting}
                 </label>
               </div>
             ))}
           </div>
 
+          {/* Permissions */}
           <div className="p-4">
             <h2 className="text-lg font-medium mb-3">Permissions</h2>
             {settingsOptions.map((setting) => (
-              <div key={setting} className=" flex items-center">
+              <div key={setting} className="flex items-center">
                 {selectedSettings[setting] ? (
                   <div className="flex items-center justify-between p-2 rounded-md">
                     <div className="flex gap-4 w-3/4">
@@ -218,19 +302,12 @@ const AddRoles = () => {
                         >
                           <input
                             type="checkbox"
-                            checked={
-                              permissions[setting]?.includes(perm) || false
-                            }
+                            checked={permissions[setting]?.includes(perm) || false}
                             onChange={(e) =>
-                              handlePermissionChange(
-                                setting,
-                                perm,
-                                e.target.checked
-                              )
+                              handlePermissionChange(setting, perm, e.target.checked)
                             }
                             className="appearance-none w-5 h-5 border-2 dark:border-white border-darkest-blue rounded-md checked:bg-select_layout-dark checked:border-transparent focus:outline-none transition-all duration-200"
                           />
-                          {/* Custom Checkmark */}
                           <span className="absolute w-5 h-5 flex justify-center items-center pointer-events-none">
                             {permissions[setting]?.includes(perm) && (
                               <svg
@@ -240,11 +317,7 @@ const AddRoles = () => {
                                 strokeWidth="3"
                                 viewBox="0 0 24 24"
                               >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M5 13l4 4L19 7"
-                                ></path>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"></path>
                               </svg>
                             )}
                           </span>
@@ -254,7 +327,7 @@ const AddRoles = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="h-9"></div> // Keeps spacing even when unchecked
+                  <div className="h-9"></div>
                 )}
               </div>
             ))}

@@ -1,20 +1,29 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-
 import axios from "axios";
+import { toast } from "react-toastify";
 import Title from "../../../component/Title";
 import { API } from "../../../Constant";
 
-
-const EditRoleAcess = ({ item }) => {
-  const [roleName, setRoleName] = useState("");
-  const [createdBy, setCreatedBy] = useState("System");
-  const [selectedSettings, setSelectedSettings] = useState({});
-  const [permissions, setPermissions] = useState({});
+const EditRoleAccess = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { roleId} = location.state || {};
+  const { roleId } = location.state || {};
+
+  const [createdBy, setCreatedBy] = useState("System");
+
+  const [departments, setDepartments] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [roles, setRoles] = useState([]);
   
+
+  const [selectedDepartment, setSelectedDepartment] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedRole, setSelectedRole] = useState(""); // For API
+  const [selectedRoleName, setSelectedRoleName] = useState(""); // For display
+
+  const [selectedSettings, setSelectedSettings] = useState({});
+  const [permissions, setPermissions] = useState({});
 
   const settingsOptions = [
     "Dashboard",
@@ -37,40 +46,98 @@ const EditRoleAcess = ({ item }) => {
     "Delete",
     "Download",
   ];
+
+  // Fetch all departments on mount
   useEffect(() => {
-    if (roleId) {
-      fetchExistingRoles();
+    const fetchDepartments = async () => {
+      try {
+        const res = await axios.get(`${API}/department/department`);
+        setDepartments(res.data.data || []);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchDepartments();
+  }, []);
+
+  // Fetch categories when department changes
+  useEffect(() => {
+    if (!selectedDepartment) {
+      setCategories([]);
+      setSelectedCategory("");
+      return;
     }
-  }, [roleId]);
 
-  const fetchExistingRoles = async () => {
+    const fetchCategories = async () => {
+      try {
+        const res = await axios.get(
+          `${API}/category/getcategoriesbydepartment?departmentId=${selectedDepartment}`
+        );
+        setCategories(res.data.data || []);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchCategories();
+  }, [selectedDepartment]);
+
+  // Fetch roles when category changes
+  useEffect(() => {
+    if (!selectedCategory) {
+      setRoles([]);
+      return;
+    }
+
+    const fetchRoles = async () => {
+      try {
+        const res = await axios.get(
+          `${API}/rolemaster/by-category/${selectedCategory}`
+        );
+         
+        setRoles(res.data.data || []);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchRoles();
+  }, [selectedCategory]);
+
+useEffect(() => {
+  if (!roleId) return;
+
+  const fetchExistingRole = async () => {
     try {
-      const response = await axios.get(
-        `${API}/role/getbyroleid?roleId=${roleId}`
-      );
+      const res = await axios.get(`${API}/role/byid?roleId=${roleId}`);
+      const data = res.data.data;
 
-      setRoleName(response.data.data.role_name); // Set the existing role name
-      const accessLevelsArr = response.data.data.accessLevels || [];
+      setCreatedBy(data.created_by_user || "System");
+      setSelectedDepartment(data.department_id);
+      setSelectedCategory(data.category_id);
+     setSelectedRole(data.role_id?.toString() || "");
+
+   
+
       const perms = {};
       const selected = {};
-      accessLevelsArr.forEach((item) => {
+      (data.accessLevels || []).forEach((item) => {
         selected[item.feature] = true;
         perms[item.feature] = item.permissions;
       });
 
-
       setSelectedSettings(selected);
       setPermissions(perms);
     } catch (error) {
-      console.log(error);
+      console.error(error);
     }
   };
 
+  fetchExistingRole();
+}, [roleId]);
+
+
+
   const toggleSetting = (setting) => {
-    setSelectedSettings((prev) => ({
-      ...prev,
-      [setting]: !prev[setting],
-    }));
+    setSelectedSettings((prev) => ({ ...prev, [setting]: !prev[setting] }));
 
     setPermissions((prev) => {
       if (prev[setting]) {
@@ -82,7 +149,6 @@ const EditRoleAcess = ({ item }) => {
     });
   };
 
-  // Handle Permission Changes
   const handlePermissionChange = (setting, permission, checked) => {
     setPermissions((prev) => {
       let updatedPermissions = prev[setting] || [];
@@ -93,10 +159,8 @@ const EditRoleAcess = ({ item }) => {
         updatedPermissions = checked
           ? [...updatedPermissions, permission]
           : updatedPermissions.filter((p) => p !== permission);
-
-        if (!checked) {
+        if (!checked)
           updatedPermissions = updatedPermissions.filter((p) => p !== "All");
-        }
       }
 
       if (updatedPermissions.length === permissionOptions.length - 1) {
@@ -108,42 +172,42 @@ const EditRoleAcess = ({ item }) => {
   };
 
   const handleSave = async () => {
+    if (!selectedDepartment || !selectedCategory || !selectedRole) {
+      toast.error("Please select department, category, and role");
+      return;
+    }
+
     const accessLevels = Object.entries(permissions).map(
       ([feature, perms]) => ({
         feature,
         permissions: perms,
       })
     );
-    const roleAccessLevel = {
-      role_name: roleName.toLowerCase(),
+
+    const payload = {
+      role_id: selectedRole,
+      role_name: selectedRoleName,
+      department_id: selectedDepartment,
+      category_id: selectedCategory,
       accessLevels,
+      created_by_user: createdBy,
       status: "active",
     };
 
     try {
-      const response = await axios.put(
-        `${API}/role/updatebyroleid?roleId=${roleId}`,
-        roleAccessLevel
-      );
-      if (response.status === 200) {
-        navigate("/setting");
-        window.location.reload();
-        toast.success("Role Updated Successfully");
-      }
+      await axios.put(`${API}/role/update?roleId=${roleId}`, payload);
+      toast.success("Role updated successfully");
+      navigate("/setting");
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      toast.error("Failed to update role");
     }
-
-    // console.log("Saved role:", {
-    //   roleName,
-    //   createdBy,
-    //   permissions,
-    // });
   };
+
 
   return (
     <>
-      <div className="flex justify-between items-center  mb-2">
+      <div className="flex justify-between items-center mb-2">
         <Title
           title="Settings"
           sub_title="Role Access"
@@ -152,7 +216,7 @@ const EditRoleAcess = ({ item }) => {
         <div className="flex gap-3">
           <p
             onClick={() => navigate("/setting")}
-            className="cursor-pointer  border dark:border-white dark:text-white border-darkest-blue px-8 py-2 rounded-sm"
+            className="cursor-pointer border dark:border-white dark:text-white border-darkest-blue px-8 py-2 rounded-sm"
           >
             Cancel
           </p>
@@ -164,40 +228,100 @@ const EditRoleAcess = ({ item }) => {
           </p>
         </div>
       </div>
-      <div className="flex items-center  gap-10 mb-4">
-        <span className="font-semibold dark:text-white text-black ">Role name</span>
-        <input
-          type="text"
-          value={roleName}
-          onChange={(e) => setRoleName(e.target.value)}
-          className="  px-3 py-1.5 rounded-md outline-none dark:bg-layout-dark bg-white text-black dark:text-white"
-        />
-        <span className="font-semibold dark:text-white text-black  ">Created By</span>
+
+      {/* Dropdowns */}
+      <div className="flex gap-6 mb-4">
+        <div>
+          <span className="font-semibold">Department</span>
+          <select
+            value={selectedDepartment}
+            onChange={(e) => {
+              setSelectedDepartment(e.target.value);
+              setSelectedCategory("");
+              setRoles([]);
+              setSelectedRole("");
+            }}
+            className="px-3 py-1.5 rounded-md outline-none dark:bg-layout-dark bg-white text-black dark:text-white"
+          >
+            <option value="">Select Department</option>
+            {departments.map((d) => (
+              <option key={d._id} value={d._id}>
+                {d.department_name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <span className="font-semibold">Category</span>
+          <select
+            value={selectedCategory}
+            onChange={(e) => {
+              setSelectedCategory(e.target.value);
+              setRoles([]);
+              setSelectedRole("");
+            }}
+            className="px-3 py-1.5 rounded-md outline-none dark:bg-layout-dark bg-white text-black dark:text-white"
+          >
+            <option value="">Select Category</option>
+            {categories.map((c) => (
+              <option key={c._id} value={c._id}>
+                {c.category_name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <span className="font-semibold">Role</span>
+          <select
+            value={selectedRole}
+            onChange={(e) => {
+              const role = roles.find((r) => r._id === e.target.value);
+              setSelectedRole(e.target.value);
+              setSelectedRoleName(role?.role_name || "");
+              
+            }}
+            className="px-3 py-1.5 rounded-md outline-none dark:bg-layout-dark bg-white text-black dark:text-white"
+          >
+            <option value="">Select Role</option>
+            {roles.map((r) => (
+              <option key={r._id} value={r._id}>
+                {r.role_name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Created By */}
+      <div className="flex items-center gap-10 mb-4">
+        <span className="font-semibold">Created By</span>
         <input
           type="text"
           value={createdBy}
           onChange={(e) => setCreatedBy(e.target.value)}
-          className="  px-3 py-1.5 rounded-md outline-none dark:bg-layout-dark dark:text-white bg-white text-black "
+          className="px-3 py-1.5 rounded-md outline-none dark:bg-layout-dark bg-white text-black dark:text-white"
         />
       </div>
 
-      <div className="dark:bg-layout-dark dark:text-white bg-white p-10  rounded-xl  ">
-        <div className="grid grid-cols-3 gap-2 ">
+      {/* Settings & Permissions */}
+      <div className="dark:bg-layout-dark dark:text-white bg-white p-10 rounded-xl">
+        <div className="grid grid-cols-3 gap-2">
           <div className="border-r-2 p-3 h-80">
             <h2 className="text-lg font-medium mb-4 w-1/2 text-center">
               Settings
             </h2>
             {settingsOptions.map((setting) => (
-              <div key={setting} className="flex items-center  mb-3">
-                <label className="flex items-center gap-2  cursor-pointer">
+              <div key={setting} className="flex items-center mb-3">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <label className="relative flex items-center cursor-pointer">
                     <input
                       type="checkbox"
                       checked={!!selectedSettings[setting]}
                       onChange={() => toggleSetting(setting)}
-                      className="appearance-none w-5 h-5 border-2 dark:border-white border-darkest-blue rounded-md checked:bg-select_layout-dark  checked:border-transparent focus:outline-none transition-all duration-200"
+                      className="appearance-none w-5 h-5 border-2 dark:border-white border-darkest-blue rounded-md checked:bg-select_layout-dark checked:border-transparent focus:outline-none transition-all duration-200"
                     />
-                    {/* Custom Checkmark */}
                     <span className="absolute w-5 h-5 flex justify-center items-center pointer-events-none">
                       {selectedSettings[setting] && (
                         <svg
@@ -211,12 +335,11 @@ const EditRoleAcess = ({ item }) => {
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             d="M5 13l4 4L19 7"
-                          ></path>
+                          />
                         </svg>
                       )}
                     </span>
                   </label>
-
                   {setting}
                 </label>
               </div>
@@ -226,7 +349,7 @@ const EditRoleAcess = ({ item }) => {
           <div className="p-4">
             <h2 className="text-lg font-medium mb-3">Permissions</h2>
             {settingsOptions.map((setting) => (
-              <div key={setting} className=" flex items-center">
+              <div key={setting} className="flex items-center">
                 {selectedSettings[setting] ? (
                   <div className="flex items-center justify-between p-2 rounded-md">
                     <div className="flex gap-4 w-3/4">
@@ -249,7 +372,6 @@ const EditRoleAcess = ({ item }) => {
                             }
                             className="appearance-none w-5 h-5 border-2 dark:border-white border-darkest-blue rounded-md checked:bg-select_layout-dark checked:border-transparent focus:outline-none transition-all duration-200"
                           />
-                          {/* Custom Checkmark */}
                           <span className="absolute w-5 h-5 flex justify-center items-center pointer-events-none">
                             {permissions[setting]?.includes(perm) && (
                               <svg
@@ -263,7 +385,7 @@ const EditRoleAcess = ({ item }) => {
                                   strokeLinecap="round"
                                   strokeLinejoin="round"
                                   d="M5 13l4 4L19 7"
-                                ></path>
+                                />
                               </svg>
                             )}
                           </span>
@@ -273,7 +395,7 @@ const EditRoleAcess = ({ item }) => {
                     </div>
                   </div>
                 ) : (
-                  <div className="h-9"></div> // Keeps spacing even when unchecked
+                  <div className="h-9"></div>
                 )}
               </div>
             ))}
@@ -284,4 +406,4 @@ const EditRoleAcess = ({ item }) => {
   );
 };
 
-export default EditRoleAcess;
+export default EditRoleAccess;

@@ -47,18 +47,19 @@ const Layout = () => {
       to: "/tasks",
       feature: "Tasks",
     },
+        {
+      title: "Campaign",
+      icon: <TbBrandCampaignmonitor size={23} />,
+      to: "/campaign",
+      feature: "Campaigns",
+    },
     {
       title: "Leads",
       icon: <HiOutlineClipboardList size={23} />,
       to: "/leads",
       feature: "Leads",
     },
-    {
-      title: "Campaign",
-      icon: <TbBrandCampaignmonitor size={23} />,
-      to: "/campaign",
-      feature: "Campaigns",
-    },
+
     {
       title: "Association",
       icon: <Receipt size={23} />,
