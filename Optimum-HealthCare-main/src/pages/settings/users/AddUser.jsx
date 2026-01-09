@@ -16,12 +16,17 @@ const schema = yup.object().shape({
     .matches(/^[0-9]{10}$/, "Phone Number must be 10 digits")
     .required("Phone Number is required"),
   role: yup.string().required("Role is required"),
+  created_by: yup.string(),
 });
 
 const AddUser = ({ onclose ,onSuccess}) => {
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
+
+  const employee = JSON.parse(localStorage.getItem("employee"));
+
+  
 
   const {
     register,
@@ -43,7 +48,7 @@ const AddUser = ({ onclose ,onSuccess}) => {
   // Fetch roles
   useEffect(() => {
     axios
-      .get(`${API}/role/getallroles`)
+      .get(`${API}/role/all`)
       .then((res) => setRoles(res.data.data))
       .catch((err) => console.error("Error fetching roles", err));
   }, []);
@@ -73,6 +78,8 @@ const AddUser = ({ onclose ,onSuccess}) => {
       role_name: selectedRole.role_name,
       email:data.email,
       phone:data.phone,
+      created_by: employee.department,
+    
     };
     const employee_id = data.userid;
 

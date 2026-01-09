@@ -57,12 +57,7 @@ const Role = () => {
     setCategoryId(e.target.value);
   };
 
-  /* ---------------- FILTER CATEGORIES (IMPORTANT) ---------------- */
-  const categoryIdsWithRoles = roles.map((r) => r.category_id);
 
-  const availableCategories = categories.filter(
-    (cat) => !categoryIdsWithRoles.includes(cat._id)
-  );
 
   /* ---------------- SAVE ROLE ---------------- */
   const handleSave = async () => {
@@ -146,8 +141,8 @@ const Role = () => {
               disabled={!departmentId}
             >
               <option value="">Select Category</option>
-              {availableCategories.length > 0 ? (
-                availableCategories.map((cat) => (
+              {categories.length > 0 ? (
+                categories.map((cat) => (
                   <option key={cat._id} value={cat._id}>
                     {cat.category_name}
                   </option>

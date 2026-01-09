@@ -15,7 +15,6 @@ const EditRoleAccess = () => {
   const [departments, setDepartments] = useState([]);
   const [categories, setCategories] = useState([]);
   const [roles, setRoles] = useState([]);
-  
 
   const [selectedDepartment, setSelectedDepartment] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -81,60 +80,63 @@ const EditRoleAccess = () => {
     fetchCategories();
   }, [selectedDepartment]);
 
-  // Fetch roles when category changes
   useEffect(() => {
-    if (!selectedCategory) {
-      setRoles([]);
-      return;
-    }
+    if (!selectedCategory) return;
 
     const fetchRoles = async () => {
       try {
         const res = await axios.get(
           `${API}/rolemaster/by-category/${selectedCategory}`
         );
-         
-        setRoles(res.data.data || []);
+
+        const rolesData = res.data.data || [];
+        setRoles(rolesData);
+
+        // ✅ preselect role AFTER roles load
+        if (selectedRole) {
+          const matchedRole = rolesData.find((r) => r._id === selectedRole);
+          if (matchedRole) {
+            setSelectedRoleName(matchedRole.role_name);
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchRoles();
+  }, [selectedCategory, selectedRole]);
+
+  useEffect(() => {
+    if (!roleId) return;
+
+    const fetchExistingRole = async () => {
+      try {
+        const res = await axios.get(`${API}/role/byid?roleId=${roleId}`);
+        const data = res.data.data;
+
+        setCreatedBy(data.created_by_user || "System");
+        setSelectedDepartment(data.department_id);
+        setSelectedCategory(data.category_id);
+        setSelectedRole(data.role_id || "");
+        setSelectedRoleName(data.role_name || "");
+
+        const perms = {};
+        const selected = {};
+        (data.accessLevels || []).forEach((item) => {
+          selected[item.feature] = true;
+          perms[item.feature] = item.permissions;
+        });
+
+        setSelectedSettings(selected);
+        setPermissions(perms);
       } catch (error) {
         console.error(error);
       }
     };
-    fetchRoles();
-  }, [selectedCategory]);
 
-useEffect(() => {
-  if (!roleId) return;
-
-  const fetchExistingRole = async () => {
-    try {
-      const res = await axios.get(`${API}/role/byid?roleId=${roleId}`);
-      const data = res.data.data;
-
-      setCreatedBy(data.created_by_user || "System");
-      setSelectedDepartment(data.department_id);
-      setSelectedCategory(data.category_id);
-     setSelectedRole(data.role_id?.toString() || "");
-
-   
-
-      const perms = {};
-      const selected = {};
-      (data.accessLevels || []).forEach((item) => {
-        selected[item.feature] = true;
-        perms[item.feature] = item.permissions;
-      });
-
-      setSelectedSettings(selected);
-      setPermissions(perms);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  fetchExistingRole();
-}, [roleId]);
-
-
+    fetchExistingRole();
+  }, [roleId]);
 
   const toggleSetting = (setting) => {
     setSelectedSettings((prev) => ({ ...prev, [setting]: !prev[setting] }));
@@ -193,6 +195,7 @@ useEffect(() => {
       created_by_user: createdBy,
       status: "active",
     };
+    console.log(payload);
 
     try {
       await axios.put(`${API}/role/update?roleId=${roleId}`, payload);
@@ -203,7 +206,6 @@ useEffect(() => {
       toast.error("Failed to update role");
     }
   };
-
 
   return (
     <>
@@ -277,16 +279,15 @@ useEffect(() => {
           <select
             value={selectedRole}
             onChange={(e) => {
-              const role = roles.find((r) => r._id === e.target.value);
+              const role = roles.find((r) => r.role_id === e.target.value);
               setSelectedRole(e.target.value);
               setSelectedRoleName(role?.role_name || "");
-              
             }}
             className="px-3 py-1.5 rounded-md outline-none dark:bg-layout-dark bg-white text-black dark:text-white"
           >
             <option value="">Select Role</option>
             {roles.map((r) => (
-              <option key={r._id} value={r._id}>
+              <option key={r._id} value={r.role_id}>
                 {r.role_name}
               </option>
             ))}

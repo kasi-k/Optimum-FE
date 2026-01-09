@@ -33,15 +33,21 @@ const AddRoles = () => {
     "Settings",
   ];
 
-  const permissionOptions = ["All", "View", "Create", "Edit", "Delete", "Download"];
+  const permissionOptions = [
+    "All",
+    "View",
+    "Create",
+    "Edit",
+    "Delete",
+    "Download",
+  ];
 
   // Fetch departments on mount
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
         const res = await axios.get(`${API}/department/department`);
-       
-        
+
         setDepartments(res.data.data);
       } catch (error) {
         console.error("Error fetching departments", error);
@@ -59,8 +65,10 @@ const AddRoles = () => {
     }
     const fetchCategories = async () => {
       try {
-        const res = await axios.get(`${API}/category/getcategoriesbydepartment?departmentId=${selectedDepartment}`);
-         console.log(res);
+        const res = await axios.get(
+          `${API}/category/getcategoriesbydepartment?departmentId=${selectedDepartment}`
+        );
+        console.log(res);
         setCategories(res.data.data);
       } catch (error) {
         console.error("Error fetching categories", error);
@@ -78,7 +86,9 @@ const AddRoles = () => {
     }
     const fetchRoles = async () => {
       try {
-        const res = await axios.get(`${API}/rolemaster/by-category/${selectedCategory}`);
+        const res = await axios.get(
+          `${API}/rolemaster/by-category/${selectedCategory}`
+        );
         setRoles(res.data.data);
       } catch (error) {
         console.error("Error fetching roles", error);
@@ -118,7 +128,9 @@ const AddRoles = () => {
       }
 
       // Auto-check "All" if all individual permissions selected
-      if (permissionOptions.slice(1).every((p) => updatedPermissions.includes(p))) {
+      if (
+        permissionOptions.slice(1).every((p) => updatedPermissions.includes(p))
+      ) {
         updatedPermissions = ["All", ...permissionOptions.slice(1)];
       } else {
         updatedPermissions = updatedPermissions.filter((p) => p !== "All");
@@ -128,39 +140,54 @@ const AddRoles = () => {
     });
   };
 
-  // Save Role Access
   const handleSave = async () => {
     if (!selectedDepartment || !selectedCategory || !selectedRole) {
       toast.error("Please select department, category, and role");
       return;
     }
 
-    const accessLevels = Object.entries(permissions).map(([feature, perms]) => ({
-      feature,
-      permissions: perms || [],
-    }));
+    // 🚨 ACCESS LEVEL VALIDATION
+    const hasValidAccess = Object.values(permissions).some(
+      (perms) => Array.isArray(perms) && perms.length > 0
+    );
+
+    if (!hasValidAccess) {
+      toast.error("Please select at least one access permission");
+      return;
+    }
+
+    const accessLevels = Object.entries(permissions)
+      .filter(([_, perms]) => perms.length > 0)
+      .map(([feature, perms]) => ({
+        feature,
+        permissions: perms,
+      }));
+
+    const selectedRoleObj = roles.find((r) => r._id === selectedRole);
 
     const payload = {
-      role_name: selectedRole.toLowerCase(),
+      role_id: selectedRoleObj.role_id, // RAC-001
+      role_name: selectedRoleObj.role_name, // CEO
+
       department_id: selectedDepartment,
-      department_name: departments.find((d) => d._id === selectedDepartment)?.department_name || "",
-      category_name: categories.find((c) => c._id === selectedCategory)?.category_name || "",
+      department_name:
+        departments.find((d) => d._id === selectedDepartment)
+          ?.department_name || "",
+
       category_id: selectedCategory,
+      category_name:
+        categories.find((c) => c._id === selectedCategory)?.category_name || "",
+
       accessLevels,
       created_by_user: createdBy,
-      status: "active",
+      status: "ACTIVE",
     };
 
     try {
-      const response = await axios.post(`${API}/role/add`, payload);
-      if (response.status === 200) {
-        toast.success("Role created successfully");
-        navigate("/setting");
-      } else {
-        toast.error("Failed to save role");
-      }
+      await axios.post(`${API}/role/add`, payload);
+      toast.success("Role created successfully");
+      navigate("/setting");
     } catch (error) {
-      console.error("Error saving role", error);
       toast.error("Error saving role");
     }
   };
@@ -168,7 +195,11 @@ const AddRoles = () => {
   return (
     <>
       <div className="flex justify-between items-center mb-2">
-        <Title title="Settings" sub_title="Role Access" page_title="Add Role Access" />
+        <Title
+          title="Settings"
+          sub_title="Role Access"
+          page_title="Add Role Access"
+        />
         <div className="flex gap-3">
           <p
             onClick={() => navigate("..")}
@@ -189,7 +220,9 @@ const AddRoles = () => {
       <div className="flex items-center gap-6 mb-4">
         {/* Department */}
         <div>
-          <span className="font-semibold dark:text-white text-black">Department</span>
+          <span className="font-semibold dark:text-white text-black">
+            Department
+          </span>
           <select
             value={selectedDepartment}
             onChange={(e) => setSelectedDepartment(e.target.value)}
@@ -206,7 +239,9 @@ const AddRoles = () => {
 
         {/* Category */}
         <div>
-          <span className="font-semibold dark:text-white text-black">Category</span>
+          <span className="font-semibold dark:text-white text-black">
+            Category
+          </span>
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
@@ -232,7 +267,7 @@ const AddRoles = () => {
           >
             <option value="">Select Role</option>
             {roles.map((role) => (
-              <option key={role._id} value={role.role_name}>
+              <option key={role._id} value={role._id}>
                 {role.role_name}
               </option>
             ))}
@@ -256,7 +291,9 @@ const AddRoles = () => {
         <div className="grid grid-cols-3 gap-2">
           {/* Settings */}
           <div className="border-r-2 p-3 h-80">
-            <h2 className="text-lg font-medium mb-4 w-1/2 text-center">Settings</h2>
+            <h2 className="text-lg font-medium mb-4 w-1/2 text-center">
+              Settings
+            </h2>
             {settingsOptions.map((setting) => (
               <div key={setting} className="flex items-center mb-3">
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -276,7 +313,11 @@ const AddRoles = () => {
                           strokeWidth="3"
                           viewBox="0 0 24 24"
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"></path>
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M5 13l4 4L19 7"
+                          ></path>
                         </svg>
                       )}
                     </span>
@@ -302,9 +343,15 @@ const AddRoles = () => {
                         >
                           <input
                             type="checkbox"
-                            checked={permissions[setting]?.includes(perm) || false}
+                            checked={
+                              permissions[setting]?.includes(perm) || false
+                            }
                             onChange={(e) =>
-                              handlePermissionChange(setting, perm, e.target.checked)
+                              handlePermissionChange(
+                                setting,
+                                perm,
+                                e.target.checked
+                              )
                             }
                             className="appearance-none w-5 h-5 border-2 dark:border-white border-darkest-blue rounded-md checked:bg-select_layout-dark checked:border-transparent focus:outline-none transition-all duration-200"
                           />
@@ -317,7 +364,11 @@ const AddRoles = () => {
                                 strokeWidth="3"
                                 viewBox="0 0 24 24"
                               >
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"></path>
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M5 13l4 4L19 7"
+                                ></path>
                               </svg>
                             )}
                           </span>

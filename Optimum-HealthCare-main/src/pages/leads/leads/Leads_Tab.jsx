@@ -55,10 +55,11 @@ const Leads_Tab = ({ user }) => {
     try {
       const { data } = await axios.get(`${API}/lead/getallleads`, {
         params: {
-          role_name: employee.role.role_name,
+          role_name: employee.department,
           name: employee.name,
         },
       });
+
 
       setLeads(data.data);
       setFilteredData(data.data);
@@ -76,11 +77,12 @@ const Leads_Tab = ({ user }) => {
     const fetchBDNames = async () => {
       try {
         const response = await axios.get(`${API}/employee/getallemployees`);
+        console.log(response);
+        
         const usersArray = response.data.data;
         const bdNames = usersArray
-          .filter((user) => user.role_name?.toLowerCase() === "bd")
           .map((user) => user.name);
-        setUniqueBDNames([...new Set(bdNames)]);
+        setUniqueBDNames([bdNames]);
       } catch (error) {
         console.error("Failed to fetch BD users:", error);
       }

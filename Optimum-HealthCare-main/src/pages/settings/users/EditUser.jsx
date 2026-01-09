@@ -15,12 +15,13 @@ const schema = yup.object().shape({
     .matches(/^[0-9]{10}$/, "Phone Number must be 10 digits")
     .required("Phone Number is required"),
   role_name: yup.string().required("Role is required"),
+    created_by: yup.string(),
 });
 
 const EditUser = ({ onclose, selectedUser,onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [roles, setRoles] = useState([]);
-
+const employee = JSON.parse(localStorage.getItem("employee"));
   const {
     register,
     handleSubmit,
@@ -33,10 +34,11 @@ const EditUser = ({ onclose, selectedUser,onSuccess }) => {
   // Fetch roles for dropdown
   useEffect(() => {
     axios
-      .get(`${API}/role/getallroles`)
+      .get(`${API}/role/all`)
       .then((res) => setRoles(res.data.data))
       .catch((err) => console.error("Error fetching roles", err));
   }, []);
+
 
  
   useEffect(() => {
@@ -50,12 +52,23 @@ const EditUser = ({ onclose, selectedUser,onSuccess }) => {
   }, [selectedUser, setValue, roles]);
 
   const onSubmit = async (data) => {
+
+      const selectedRole = roles.find(
+    (r) => r.role_name === data.role_name
+  );
+  console.log(selectedRole);
+  
     const payload = {
+      role_id:  selectedRole.role_id ,
       role_name: data.role_name,
       name: data.name,
       email: data.email,
       phone: data.phone,
+      department: selectedRole.department_name || "",
+      created_by: employee.department || "",
     };
+
+console.log(payload);
 
     const employee_id = data.userid;
 
