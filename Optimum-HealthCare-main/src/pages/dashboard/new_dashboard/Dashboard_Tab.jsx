@@ -5,7 +5,7 @@ import Employee_Dashboard from "../new_dashboard/Employee_Dashboard";
 
 const Dashboard_Tab = () => {
   const user = JSON.parse(localStorage.getItem("employee")); // get logged-in user
-  const roleName = user?.role?.role_name?.toLowerCase(); // "admin", "doctor", etc.
+  const roleName = user?.department.toLowerCase(); // "admin", "doctor", etc.
 
   return (
     <div className="flex flex-col h-full w-full">
