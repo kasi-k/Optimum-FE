@@ -66,7 +66,7 @@ const Role = () => {
     await axios.post(`${API}/rolemaster/create`, {
       department_id: departmentId,
       category_id: categoryId,
-      role_name: roleName,
+      role_name: roleName.toLowerCase(),
     });
 
     setRoleName("");
@@ -79,7 +79,7 @@ const Role = () => {
   return (
     <>
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-4 ">
         <h2 className="font-semibold text-lg dark:text-white">Roles</h2>
         <button
           onClick={() => setShowModal(true)}
@@ -90,7 +90,7 @@ const Role = () => {
       </div>
 
       {/* TABLE */}
-      <div className="dark:bg-layout-dark bg-layout-light rounded-md p-4">
+      <div className="dark:bg-layout-dark bg-layout-light rounded-md p-4 dark:text-white">
         {roles.length > 0 ? (
           <table className="w-full text-sm">
             <thead>
@@ -115,7 +115,7 @@ const Role = () => {
 
       {/* MODAL */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 dark:text-white">
           <div className="bg-white dark:bg-layout-dark p-6 rounded-md w-96">
             <h3 className="font-semibold mb-4">Add Role</h3>
 
@@ -123,7 +123,7 @@ const Role = () => {
             <select
               value={departmentId}
               onChange={handleDepartmentChange}
-              className="w-full px-3 py-2 border rounded-md mb-3"
+              className="w-full dark:bg-layout-dark px-3 py-2 border rounded-md mb-3"
             >
               <option value="">Select Department</option>
               {departments.map((dept) => (
@@ -137,7 +137,7 @@ const Role = () => {
             <select
               value={categoryId}
               onChange={handleCategoryChange}
-              className="w-full px-3 py-2 border rounded-md mb-3"
+              className="w-full dark:bg-layout-dark px-3 py-2 border rounded-md mb-3"
               disabled={!departmentId}
             >
               <option value="">Select Category</option>

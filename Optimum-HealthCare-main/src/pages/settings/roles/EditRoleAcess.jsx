@@ -232,9 +232,9 @@ const EditRoleAccess = () => {
       </div>
 
       {/* Dropdowns */}
-      <div className="flex gap-6 mb-4">
+      <div className="flex gap-6 mb-4 dark:text-white">
         <div>
-          <span className="font-semibold">Department</span>
+          <span className="font-semibold px-1">Department</span>
           <select
             value={selectedDepartment}
             onChange={(e) => {
@@ -255,7 +255,7 @@ const EditRoleAccess = () => {
         </div>
 
         <div>
-          <span className="font-semibold">Category</span>
+          <span className="font-semibold px-1">Category</span>
           <select
             value={selectedCategory}
             onChange={(e) => {
@@ -275,7 +275,7 @@ const EditRoleAccess = () => {
         </div>
 
         <div>
-          <span className="font-semibold">Role</span>
+          <span className="font-semibold px-1">Role</span>
           <select
             value={selectedRole}
             onChange={(e) => {
@@ -296,7 +296,7 @@ const EditRoleAccess = () => {
       </div>
 
       {/* Created By */}
-      <div className="flex items-center gap-10 mb-4">
+      <div className="flex items-center gap-10 mb-4 dark:text-white">
         <span className="font-semibold">Created By</span>
         <input
           type="text"

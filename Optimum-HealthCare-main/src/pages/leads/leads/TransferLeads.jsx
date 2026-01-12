@@ -116,7 +116,7 @@ const TransferLeads = ({
                 render={({ field }) => (
                   <select
                     {...field}
-                    className="p-2 rounded-md w-72 bg-transparent border border-[#454545] text-black dark:text-white dark:bg-transparent"
+                    className="p-2  rounded-md w-72 bg-transparent border border-[#454545] text-black dark:text-white dark:bg-transparent"
                   >
                     <option value="" className="text-black">
                       Select BD Name

@@ -6,9 +6,11 @@ import DeleteModal from "../../../component/DeleteModal";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { API } from "../../../Constant";
+import { useNavigate } from "react-router-dom";
 
 const LeadsTable = ({ data }) => {
   const [leads, setLeads] = useState([]);
+  const navigate = useNavigate(); 
   const [deleteModal, setDeleteModal] = useState(false);
   const [viewModal, setViewModal] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
@@ -86,8 +88,7 @@ const LeadsTable = ({ data }) => {
                     <div className="flex justify-center items-center gap-3">
                       <button
                         onClick={() => {
-                          setSelectedLead(lead);
-                          setViewModal(true);
+                     navigate("/leads")
                         }}
                         className="cursor-pointer p-1 rounded-sm bg-green-200 text-green-600"
                       >

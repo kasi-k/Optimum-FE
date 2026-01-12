@@ -67,7 +67,7 @@ const AddEmployee = ({ onclose, createdByUser }) => {
   };
 
   const inputClass =
-    "p-2 rounded-md w-full bg-transparent border border-gray-600 dark:border-gray-500 text-black dark:text-white placeholder:text-gray-400";
+    "p-2 rounded-md w-full bg-transparent dark:bg-layout-dark border border-gray-600 dark:border-gray-500 text-black dark:text-white placeholder:text-gray-400";
 
   return (
     <div className="font-layout-font fixed inset-0 grid z-20 justify-center items-center backdrop-blur-xs">

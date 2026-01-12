@@ -37,7 +37,7 @@ const Category = () => {
     if (!departmentId || !categoryName.trim()) return;
 
     await axios.post(`${API}/category/addcategory`, {
-      category_name: categoryName,
+      category_name: categoryName.toLowerCase(),
       department_id: departmentId,
       department_name: departments.find((dept) => dept._id === departmentId)
         ?.department_name,      
@@ -64,7 +64,7 @@ const Category = () => {
       </div>
 
       {/* TABLE */}
-      <div className="dark:bg-layout-dark bg-layout-light rounded-md p-4">
+      <div className="dark:bg-layout-dark bg-layout-light rounded-md p-4 dark:text-white">
         {categories.length > 0 ? (
           <table className="w-full text-sm">
             <thead>
@@ -91,14 +91,14 @@ const Category = () => {
 
       {/* MODAL */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 dark:text-white">
           <div className="bg-white dark:bg-layout-dark p-6 rounded-md w-96">
             <h3 className="font-semibold mb-4">Add Category</h3>
 
             <select
               value={departmentId}
               onChange={(e) => setDepartmentId(e.target.value)}
-              className="w-full bg-layout-dark text-white px-3 py-2 border rounded-md mb-3"
+              className="w-full bg-layout-dark dark:text-white px-3 py-2 border rounded-md mb-3"
             >
               <option value="">Select Department</option>
               {departments.map((dept) => (

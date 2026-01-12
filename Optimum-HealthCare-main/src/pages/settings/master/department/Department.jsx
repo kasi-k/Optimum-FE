@@ -31,7 +31,7 @@ const Department = () => {
 
     try {
       await axios.post(`${API}/department/department/add`, {
-        department_name: departmentName,
+        department_name: departmentName.toLowerCase(),
       });
 
       setDepartmentName("");

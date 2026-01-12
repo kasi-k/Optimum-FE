@@ -220,7 +220,7 @@ const AddRoles = () => {
       <div className="flex items-center gap-6 mb-4">
         {/* Department */}
         <div>
-          <span className="font-semibold dark:text-white text-black">
+          <span className="font-semibold px-1 dark:text-white text-black">
             Department
           </span>
           <select
@@ -239,7 +239,7 @@ const AddRoles = () => {
 
         {/* Category */}
         <div>
-          <span className="font-semibold dark:text-white text-black">
+          <span className="font-semibold px-1 dark:text-white text-black">
             Category
           </span>
           <select
@@ -258,7 +258,7 @@ const AddRoles = () => {
 
         {/* Role */}
         <div>
-          <span className="font-semibold dark:text-white text-black">Role</span>
+          <span className="font-semibold px-1 dark:text-white text-black">Role</span>
           <select
             value={selectedRole}
             onChange={(e) => setSelectedRole(e.target.value)}
@@ -276,7 +276,7 @@ const AddRoles = () => {
       </div>
 
       {/* Created By */}
-      <div className="flex items-center gap-10 mb-4">
+      <div className="flex items-center gap-10 mb-4 dark:text-white">
         <span className="font-semibold">Created By</span>
         <input
           type="text"

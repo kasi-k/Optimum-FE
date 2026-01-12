@@ -62,12 +62,12 @@ const ViewCampaign = () => {
         >
           Add Leads
         </button>
-        <button
+        {/* <button
           onClick={() => setIsOpenAddAppointments(true)}
           className="dark:bg-select_layout-dark bg-select_layout-light dark:text-white text-black px-2 py-1 rounded "
         >
           Add Appointments
-        </button>
+        </button> */}
       </div>
       <div className="font-roboto-flex grid lg:grid-cols-12 md:grid-cols-9 grid-cols-3 gap-3 dark:text-white my-6">
         <div className="col-span-3 p-4 space-y-4 dark:bg-layout-dark bg-white w-full rounded-lg">

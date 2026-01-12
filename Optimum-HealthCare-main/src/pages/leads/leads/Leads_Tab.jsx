@@ -20,8 +20,6 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import NavBar from "../../../component/NavBar";
 
-
-
 const Leads_Tab = ({ user }) => {
   const { searchTerm } = useSearch();
   const navigate = useNavigate();
@@ -43,6 +41,7 @@ const Leads_Tab = ({ user }) => {
   const [transferLeads, setTransferLeads] = useState(false);
   const [uniqueBDNames, setUniqueBDNames] = useState([]);
   const [exportOpen, setExportOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState(null);
 
   const [filterParams, setFilterParams] = useState({
     fromdate: "",
@@ -59,7 +58,6 @@ const Leads_Tab = ({ user }) => {
           name: employee.name,
         },
       });
-
 
       setLeads(data.data);
       setFilteredData(data.data);
@@ -78,11 +76,10 @@ const Leads_Tab = ({ user }) => {
       try {
         const response = await axios.get(`${API}/employee/getallemployees`);
         console.log(response);
-        
+
         const usersArray = response.data.data;
-        const bdNames = usersArray
-          .map((user) => user.name);
-        setUniqueBDNames([bdNames]);
+        const bdNames = usersArray.map((user) => user.name);
+        setUniqueBDNames([...bdNames]);
       } catch (error) {
         console.error("Failed to fetch BD users:", error);
       }
@@ -146,96 +143,91 @@ const Leads_Tab = ({ user }) => {
   };
 
   const exportLeadsToPDF = (leads) => {
-  const doc = new jsPDF("landscape");
+    const doc = new jsPDF("landscape");
 
-  doc.setFontSize(14);
-  doc.text("Leads Report", 14, 15);
+    doc.setFontSize(14);
+    doc.text("Leads Report", 14, 15);
 
-  const tableColumn = [
-    "Lead ID",
-    "Name",
-    "Age",
-    "Weight",
-    "Circle",
-    "Status",
-    "BD Name",
-  ];
+    const tableColumn = [
+      "Lead ID",
+      "Name",
+      "Age",
+      "Weight",
+      "Circle",
+      "Status",
+      "BD Name",
+    ];
 
-  const tableRows = leads.map((lead) => [
-    lead.lead_id,
-    lead.name,
-    lead.age,
-    lead.weight,
-    lead.circle,
-    lead.status,
-    lead.bdname || "Unassigned",
-  ]);
+    const tableRows = leads.map((lead) => [
+      lead.lead_id,
+      lead.name,
+      lead.age,
+      lead.weight,
+      lead.circle,
+      lead.status,
+      lead.bdname || "Unassigned",
+    ]);
 
-  autoTable(doc, {
-    head: [tableColumn],
-    body: tableRows,
-    startY: 20,
-    styles: { fontSize: 9 },
-    headStyles: { fillColor: [33, 150, 243] },
-  });
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 20,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [33, 150, 243] },
+    });
 
-  doc.save("Leads_Report.pdf");
-};
+    doc.save("Leads_Report.pdf");
+  };
 
+  const exportLeadsToExcel = (leads) => {
+    const worksheetData = leads.map((lead) => ({
+      "Lead ID": lead.lead_id,
+      Name: lead.name,
+      Age: lead.age,
+      Weight: lead.weight,
+      Circle: lead.circle,
+      Status: lead.status,
+      "BD Name": lead.bdname || "Unassigned",
+    }));
 
-const exportLeadsToExcel = (leads) => {
-  const worksheetData = leads.map((lead) => ({
-    "Lead ID": lead.lead_id,
-    Name: lead.name,
-    Age: lead.age,
-    Weight: lead.weight,
-    Circle: lead.circle,
-    Status: lead.status,
-    "BD Name": lead.bdname || "Unassigned",
-  }));
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
 
-  const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-  const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
 
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
 
-  const excelBuffer = XLSX.write(workbook, {
-    bookType: "xlsx",
-    type: "array",
-  });
+    const file = new Blob([excelBuffer], {
+      type: "application/octet-stream",
+    });
 
-  const file = new Blob([excelBuffer], {
-    type: "application/octet-stream",
-  });
-
-  saveAs(file, "Leads_Report.xlsx");
-};
-
+    saveAs(file, "Leads_Report.xlsx");
+  };
 
   return (
     <>
-      <NavBar
-      title="Leads"
-      pagetitle="Leads Table"
-      />
-      
-        <div className="font-layout-font  flex justify-end items-center gap-2 pb-2">
-          {canEdit && (
-            <button
-              onClick={() => selectedRows.length > 0 && setTransferLeads(true)}
-              disabled={selectedRows.length === 0}
-              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md ${
-                selectedRows.length === 0
-                  ? "dark:bg-gray-500 bg-gray-400 text-white cursor-not-allowed"
-                  : "bg-select_layout-dark dark:text-white text-white cursor-pointer"
-              }`}
-            >
-              <RiUserSharedLine size={18} />
-              Transfer Leads
-            </button>
-          )}
+      <NavBar title="Leads" pagetitle="Leads Table" />
 
-          {/* {canCreate && (
+      <div className="font-layout-font  flex justify-end items-center gap-2 pb-2">
+        {canEdit && (
+          <button
+            onClick={() => selectedRows.length > 0 && setTransferLeads(true)}
+            disabled={selectedRows.length === 0}
+            className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md ${
+              selectedRows.length === 0
+                ? "dark:bg-gray-500 bg-gray-400 text-white cursor-not-allowed"
+                : "bg-select_layout-dark dark:text-white text-white cursor-pointer"
+            }`}
+          >
+            <RiUserSharedLine size={18} />
+            Transfer Leads
+          </button>
+        )}
+
+        {/* {canCreate && (
             <p
               onClick={() => setCreateAppoinment(true)}
               className="cursor-pointer flex items-center text-white gap-2 bg-select_layout-dark px-4 py-2 text-sm rounded-md"
@@ -245,51 +237,50 @@ const exportLeadsToExcel = (leads) => {
             </p>
           )} */}
 
-          <div className="relative">
-            {/* Export Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setExportOpen((prev) => !prev);
-              }}
-              className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md"
-            >
-              <TbFileExport />
-              Export
-            </button>
+        <div className="relative">
+          {/* Export Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setExportOpen((prev) => !prev);
+            }}
+            className="cursor-pointer flex items-center gap-1.5 dark:text-white dark:bg-layout-dark bg-layout-light px-4 py-2 rounded-md"
+          >
+            <TbFileExport />
+            Export
+          </button>
 
-            {/* Dropdown */}
-            {exportOpen && (
-              <div className="absolute right-0 mt-2 w-36 rounded-md shadow-lg z-50 bg-white dark:text-white text-black dark:bg-layout-dark border dark:border-gray-700">
-                <button
-                  onClick={() => {
-                    exportLeadsToPDF(filteredLeads);
-                    setExportOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  Export PDF
-                </button>
+          {/* Dropdown */}
+          {exportOpen && (
+            <div className="absolute right-0 mt-2 w-36 rounded-md shadow-lg z-50 bg-white dark:text-white text-black dark:bg-layout-dark border dark:border-gray-700">
+              <button
+                onClick={() => {
+                  exportLeadsToPDF(filteredLeads);
+                  setExportOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                Export PDF
+              </button>
 
-                <button
-                  onClick={() => {
-                    exportLeadsToExcel(filteredLeads);
-                    setExportOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  Export Excel
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* ✅ Date Filter (same as Tasks) */}
-          <div className="cursor-pointer flex items-center gap-3 dark:text-white dark:bg-layout-dark bg-layout-light rounded-md">
-            <Filter onFilterChange={setFilterParams} />
-          </div>
+              <button
+                onClick={() => {
+                  exportLeadsToExcel(filteredLeads);
+                  setExportOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                Export Excel
+              </button>
+            </div>
+          )}
         </div>
- 
+
+        {/* ✅ Date Filter (same as Tasks) */}
+        <div className="cursor-pointer flex items-center gap-3 dark:text-white dark:bg-layout-dark bg-layout-light rounded-md">
+          <Filter onFilterChange={setFilterParams} />
+        </div>
+      </div>
 
       {/* ---------- Table ---------- */}
       <div className="font-layout-font overflow-auto no-scrollbar">
@@ -351,7 +342,10 @@ const exportLeadsToExcel = (leads) => {
                   <td className="space-x-2 pl-4 p-2.5 rounded-r-lg">
                     {canEdit && (
                       <button
-                        onClick={() => setEdit_lead(true)}
+                        onClick={() => {
+                          setSelectedLead(data); // ✅ pass row data
+                          setEdit_lead(true); // open modal
+                        }}
                         className="cursor-pointer bg-blue-200 p-1.5 rounded-sm"
                       >
                         <Pencil size={16} className="text-blue-600" />
@@ -389,7 +383,14 @@ const exportLeadsToExcel = (leads) => {
         onPageChange={setCurrentPage}
       />
 
-      {Edit_lead && <Edit_leads onclose={() => setEdit_lead(false)} />}
+      {Edit_lead && (
+        <Edit_leads
+          onclose={() => setEdit_lead(false)}
+          leadData={selectedLead} // ✅ send data
+          fetchLeads={fetchLeads}
+        />
+      )}
+
       {CreateAppoinment && (
         <Create_Appoinment onclose={() => setCreateAppoinment(false)} />
       )}
