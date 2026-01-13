@@ -13,6 +13,45 @@ const ViewTasks = () => {
   const location = useLocation();
   const [taskData, setTaskData] = useState(location.state?.task || {});
   const navigate = useNavigate();
+const loggedInUserId = JSON.parse(localStorage.getItem("employee"));; 
+// or from auth context
+
+  const [users, setUsers] = useState([]);
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const res = await axios.get(`${API}/employee/getallemployees`);
+        setUsers(res.data.data || []);
+      } catch (err) {
+        console.error("Failed to fetch employees");
+      }
+    };
+
+    fetchEmployees();
+  }, []);
+
+  const getEmployeeNames = (ids) => {
+    if (!ids) return "N/A";
+
+    // show multiple names if array
+    if (Array.isArray(ids)) {
+      return ids
+        .map((id) => users.find((u) => u.employee_id === id)?.name || id)
+        .join(", ");
+    }
+
+    // single id
+    return users.find((u) => u.employee_id === ids)?.name || ids;
+  };
+
+  const isCreator = loggedInUserId.department === "admin";
+
+const displayLabel = isCreator ? "Assigned To" : "Created By";
+
+const displayValue = isCreator
+  ? getEmployeeNames(taskData?.assigned_to)
+  : (taskData?.created_by);
 
   const handleMarkComplete = async (taskData) => {
     const confirmed = window.confirm(
@@ -73,7 +112,11 @@ const ViewTasks = () => {
             },
             { name: "Status", value: taskData?.status || "N/A" },
 
-            { name: "Assigned To", value: taskData?.assigned_to || "N/A" },
+       {
+  name: displayLabel,
+  value: displayValue,
+},
+
             { name: "Note", value: taskData?.note || "N/A" },
           ].map((heading, index) => (
             <div
@@ -180,19 +223,18 @@ const ViewTasks = () => {
           </tbody>
         </table>
       </div>
-{comments && (
-  <AddComments
-    onclose={() => setComments(false)}
-    task={taskData}
-    onSuccess={(newComment) => {
-      setTaskData((prev) => ({
-        ...prev,
-        comments: [...(prev.comments || []), newComment], // ✅ add new comment locally
-      }));
-    }}
-  />
-)}
-
+      {comments && (
+        <AddComments
+          onclose={() => setComments(false)}
+          task={taskData}
+          onSuccess={(newComment) => {
+            setTaskData((prev) => ({
+              ...prev,
+              comments: [...(prev.comments || []), newComment], // ✅ add new comment locally
+            }));
+          }}
+        />
+      )}
     </div>
   );
 };

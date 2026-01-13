@@ -332,7 +332,7 @@ const Leads_Tab = ({ user }) => {
                   </td>
                   <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                   <td>{data.lead_id}</td>
-                  <td>{data.status}</td>
+                  <td className="first-letter:uppercase">{data.status}</td>
                   <td>{data.name}</td>
                   <td>{data.age}</td>
                   <td>{data.weight}</td>

@@ -95,7 +95,7 @@ const ViewCampaign = () => {
             <p
               className="col-span-2 underline text-blue-500 cursor-pointer"
               onClick={() => {
-                navigator.clipboard.writeText(campaignDetails?.campaignLink);
+                navigator.clipboard.writeText(campaignDetails?.fb_link);
                 toast.success("Link copied!");
               }}
             >

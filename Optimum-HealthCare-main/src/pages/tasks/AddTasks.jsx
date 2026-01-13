@@ -27,9 +27,11 @@ const schema = yup.object().shape({
         ["image/jpeg", "image/png", "application/pdf"].includes(file.type)
       );
     }),
+  created_by: yup.string(),
 });
 
-const AddTasks = ({ onclose,onSuccess }) => {
+const AddTasks = ({ onclose, onSuccess }) => {
+  const employee = JSON.parse(localStorage.getItem("employee")) || {};
   const [assigned, setAssigned] = useState([]);
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState([]);
@@ -45,7 +47,7 @@ const AddTasks = ({ onclose,onSuccess }) => {
 
   const onSubmit = async (data) => {
     console.log(data);
-    
+
     try {
       setLoading(true);
 
@@ -56,13 +58,13 @@ const AddTasks = ({ onclose,onSuccess }) => {
       formData.append("note", data.note || "");
       formData.append("assigned_to", data.assigned_to || "");
       assigned.forEach((user) => formData.append("assigned_to[]", user.value));
-  
 
       if (data.attachments && data.attachments.length > 0) {
         Array.from(data.attachments).forEach((file) => {
           formData.append("attachments", file);
         });
       }
+      formData.append("created_by", employee.name); // Hardcoded for now
 
       await axios.post(`${API}/task/add`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -86,7 +88,6 @@ const AddTasks = ({ onclose,onSuccess }) => {
       .catch((err) => console.error("Error fetching roles", err));
   }, []);
 
-  
   const availableUsers = users.filter((u) => u.role_id && u.role_name);
 
   return (

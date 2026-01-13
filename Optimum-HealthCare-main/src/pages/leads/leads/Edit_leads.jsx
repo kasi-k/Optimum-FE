@@ -40,10 +40,7 @@ const Edit_leads = ({ onclose, leadData, fetchLeads }) => {
   // ✅ Save update
   const handleSave = async () => {
     try {
-      await axios.put(
-        `${API}/lead/updatelead/${leadData._id}`,
-        formData
-      );
+      await axios.put(`${API}/lead/updatelead/${leadData._id}`, formData);
       toast.success("Lead updated successfully");
       fetchLeads();
       onclose();
@@ -56,7 +53,6 @@ const Edit_leads = ({ onclose, leadData, fetchLeads }) => {
   return (
     <div className="font-layout-font fixed inset-0 flex justify-center items-center backdrop-blur-sm z-10">
       <div className="dark:bg-layout-dark bg-layout-light rounded-lg drop-shadow-md dark:text-white w-fit h-fit">
-
         {/* Close */}
         <p
           className="grid place-self-end -mx-4 -my-4 dark:bg-layout-dark bg-layout-light shadow-sm py-2 px-2 rounded-full cursor-pointer"
@@ -70,7 +66,6 @@ const Edit_leads = ({ onclose, leadData, fetchLeads }) => {
 
           <div className="p-4">
             <form className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
               {/* Lead ID */}
               <div className="flex col-span-2 justify-between items-center">
                 <label className="font-medium">Leads ID</label>
@@ -134,15 +129,21 @@ const Edit_leads = ({ onclose, leadData, fetchLeads }) => {
               {/* Status */}
               <div className="flex col-span-2 justify-between items-center">
                 <label className="font-medium">Status</label>
-                <input
-                  type="text"
+                <select
                   name="status"
                   value={formData.status}
                   onChange={handleChange}
-                  className="p-2 rounded-md w-72 bg-transparent border border-gray-600"
-                />
+                  className="p-2 rounded-md w-72 bg-transparent  dark:bg-layout-dark border border-gray-600 dark:text-white "
+                >
+                  <option disabled value="" className="text-black">
+                    select status
+                  </option>
+                  <option value="new">New</option>
+                  <option value="follow-up">Follow-up</option>
+                  <option value="converted">Converted</option>
+                  <option value="lost">Lost</option>
+                </select>
               </div>
-
             </form>
           </div>
         </div>

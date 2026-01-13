@@ -14,6 +14,7 @@ const schema = yup.object().shape({
   startDate: yup.string(),
   endDate: yup.string(),
   budget: yup.number().typeError("Budget must be a number").required("Budget is required").positive("Budget must be positive"),
+  campaignId: yup.string(),
 });
 
 const CreateCampaign = ({ onclose }) => {
@@ -56,7 +57,7 @@ const CreateCampaign = ({ onclose }) => {
           <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 sm:grid-cols-2 space-y-2 gap-4 dark:text-white text-black">
             {/* Channel Name */}
             <div className="flex col-span-2 gap-5 justify-between items-center">
-              <label className="font-medium">Channel Name</label>
+              <label className="font-medium">Campaign Name</label>
               <input
                 type="text"
                 placeholder="Channel"
@@ -78,6 +79,17 @@ const CreateCampaign = ({ onclose }) => {
               {errors.channel && <p className="mt-0.5 text-xs text-red-500">{errors.channel.message}</p>}
             </div>
 
+            {/* Budget */}
+            <div className="flex col-span-2 gap-5 justify-between items-center">
+              <label className="font-medium">Campaign Id</label>
+              <input
+                type="text"
+                placeholder="campaignId "
+                className="p-2 rounded-md w-72 bg-transparent border border-gray-600 dark:placeholder:text-white placeholder:text-black"
+                {...register("campaignId")}
+              />
+              {errors.campaignId && <p className="mt-0.5 text-xs text-red-500">{errors.campaignId.message}</p>}
+            </div>
             {/* Start Date */}
             <div className="flex col-span-2 gap-5 justify-between items-center">
               <label className="font-medium">Start Date</label>
@@ -99,6 +111,7 @@ const CreateCampaign = ({ onclose }) => {
               />
               {errors.endDate && <p className="mt-0.5 text-xs text-red-500">{errors.endDate.message}</p>}
             </div>
+
 
             {/* Budget */}
             <div className="flex col-span-2 gap-5 justify-between items-center">

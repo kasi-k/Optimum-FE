@@ -5,6 +5,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import axios from "axios";
 import { API } from "../../../Constant";
+import { toast } from "react-toastify";
 
 const schema = yup.object().shape({
   userid: yup.string().required("User ID is required"),
@@ -75,6 +76,7 @@ console.log(payload);
     try {
       setLoading(true);
       await axios.put(`${API}/employee/updateemployee/${employee_id}`, payload);
+      toast.success("User  updated successfully");
       onSuccess();
       onclose();
     } catch (err) {

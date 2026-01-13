@@ -41,7 +41,7 @@ const Admin_Dashboard = () => {
 
       const [leadsRes, appointmentRes, campaignRes] = await Promise.all([
         axios.get(`${API}/lead/getallleads`, {
-          params: { role_name: data.role.role_name, name: data.name },
+          params: { role_name: data.department, name: data.name },
         }),
         axios.get(`${API}/appointment/getallappointments`),
         axios.get(`${API}/campaign/allcampaigns`),

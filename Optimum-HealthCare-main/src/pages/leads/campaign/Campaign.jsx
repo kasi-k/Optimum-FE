@@ -231,6 +231,7 @@ const Campaign = ({ user }) => {
               <th className="p-3.5 rounded-l-lg">S.no</th>
               {[
                 "Campaign ID",
+                "Campaign Name",
                 "Channel",
                 "Start Date",
                 "End Date",
@@ -259,6 +260,7 @@ const Campaign = ({ user }) => {
                     {(currentPage - 1) * itemsPerPage + index + 1}
                   </td>
                   <td>{data.campaign_id}</td>
+                  <td>{data.channelName}</td>
                   <td>{data.channel}</td>
                   <td>{formatDate(data.startDate)}</td>
                   <td>{formatDate(data.endDate)}</td>

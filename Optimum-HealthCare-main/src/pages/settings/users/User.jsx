@@ -47,9 +47,12 @@ const User = () => {
           todate: filterParams.todate,
         },
       });
-      const usersWithRole = res.data.data.filter(
-        (user) => user.role_id && user.role_name // or user.role_name if that's your field
-      );
+const usersWithRole = res.data.data
+  .filter(user => user.role_id && user.role_name)
+  .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // ✅ newest first
+
+
+
       setEmployees(usersWithRole || []);
       setTotalPages(res.data.totalPages || 0);
     } catch (err) {

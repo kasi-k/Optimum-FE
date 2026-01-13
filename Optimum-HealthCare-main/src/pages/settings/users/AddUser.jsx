@@ -60,7 +60,7 @@ const AddUser = ({ onclose ,onSuccess}) => {
     const selectedUser = users.find((u) => u.employee_id === selectedId);
 
     if (selectedUser) {
-      setValue("name", selectedUser.name || "");
+      setValue("userid", selectedUser.employee_id || "");
       setValue("email", selectedUser.email || "");
       setValue("phone", selectedUser.phone || "");
     }
@@ -115,30 +115,30 @@ const AddUser = ({ onclose ,onSuccess}) => {
           <form onSubmit={handleSubmit(onSubmit)} className="my-5">
             <div className="grid lg:grid-cols-12 md:grid-cols-12 items-center lg:gap-5 md:gap-5 gap-3 mb-6 mx-5">
               {/* User ID */}
-              <label className="col-span-5 text-sm font-semibold">User ID</label>
+              <label className="col-span-5 text-sm font-semibold">Employee name</label>
               <select
-                {...register("userid")}
+                {...register("name")}
                 onChange={handleUserIdChange}
                 className="col-span-7 text-xs dark:bg-layout-dark bg-layout-light border border-gray-500 rounded-lg h-11 px-2"
               >
-                <option value="">Select User</option>
+                <option value="">Select employee</option>
                 {availableUsers.map((user) => (
                   <option key={user.employee_id} value={user.employee_id}>
-                    {user.employee_id}
+                    {user.name}
                   </option>
                 ))}
               </select>
               {errors.userid && (
                 <span className="text-red-500 text-xs col-span-12">
-                  {errors.userid.message}
+                  {errors.name.message}
                 </span>
               )}
 
               {/* Name */}
-              <label className="col-span-5 text-sm font-semibold">Name</label>
+              <label className="col-span-5 text-sm font-semibold">User ID</label>
               <input
                 type="text"
-                {...register("name")}
+                {...register("userid")}
                 placeholder="Enter name"
                 className="col-span-7 placeholder:dark:text-white placeholder:text-xs placeholder:font-light border border-gray-500 rounded-lg h-11 px-2"
               />

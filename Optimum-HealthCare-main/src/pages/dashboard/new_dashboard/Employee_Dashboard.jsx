@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import NavBar from "../../../component/NavBar";
 import { TbProgress } from "react-icons/tb";
 import { Calendar } from "lucide-react";
+import { FaStar } from "react-icons/fa";
 import {
   BarChart,
   Bar,
@@ -13,17 +13,24 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { FaStar } from "react-icons/fa";
+import axios from "axios";
+import { API } from "../../../Constant";
 
 const Employee_Dashboard = () => {
   const [isDark, setIsDark] = useState(false);
-  const statsData = [
-    { title: "Leads", value: "1,245", footer: "Total Leads" },
-    { title: "In Patient Details", value: "1,245", footer: "Total IPD" },
-    { title: "Out Patient Details", value: "1,245", footer: "Total OPD" },
-    { title: "Total Revenue", value: "1,245", footer: "Total Revenue" },
-  ];
 
+  // --- API-driven states ---
+  const [leadCount, setLeadCount] = useState(0);
+  const [leaddata, setLeaddata] = useState([]);
+  const [ipdCount, setIpdCount] = useState(0);
+  const [opdCount, setOpdCount] = useState(0);
+  const [performers, setPerformers] = useState([]);
+  const [follow_up, setFollowUp] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+
+  const employee = JSON.parse(localStorage.getItem("employee"));
+
+  // --- Static chart & color data ---
   const revenueData = [
     { name: "Jan", value: 40 },
     { name: "Feb", value: 60 },
@@ -44,61 +51,8 @@ const Employee_Dashboard = () => {
     { name: "X", value: 30 },
     { name: "Facebook", value: 20 },
   ];
+
   const COLORS = ["#F39C12", "#FF6384", "#FFCE56"];
-
-  const follow_up = [
-    {
-      name: "Liam Harper",
-      source: "Online",
-      date: "2023-07-15",
-      status: "New",
-    },
-    {
-      name: "Olivia Bennett",
-      source: "Referral",
-      date: "2023-07-14",
-      status: "Contacted",
-    },
-    {
-      name: "Noah Carter",
-      source: "Advertisement",
-      date: "2023-07-13",
-      status: "Qualified",
-    },
-    {
-      name: "Emma Hayes",
-      source: "Online",
-      date: "2023-07-12",
-      status: "New",
-    },
-  ];
-
-  const appointments = [
-    {
-      patient: "Ava Morgan",
-      department: "Cardiology",
-      appointmentDate: "2023-07-20",
-      doctor: "Dr. Ethan Clark",
-    },
-    {
-      patient: "Lucas Foster",
-      department: "Neurology",
-      appointmentDate: "2023-07-21",
-      doctor: "Dr. Sophia Reed",
-    },
-    {
-      patient: "Isabella Hayes",
-      department: "Pediatrics",
-      appointmentDate: "2023-07-22",
-      doctor: "Dr. Owen Bennett",
-    },
-    {
-      patient: "Jackson Reed",
-      department: "Orthopedics",
-      appointmentDate: "2023-07-23",
-      doctor: "Dr. Chloe Turner",
-    },
-  ];
 
   const events = [
     { title: "New Cardiology Wing Opening", date: "2023-07-10" },
@@ -106,7 +60,10 @@ const Employee_Dashboard = () => {
     { title: "Hospital Anniversary Celebration", date: "2023-07-01" },
   ];
 
+  // --- Fetch employee dashboard data ---
   useEffect(() => {
+    fetchEmployeeDashboard();
+
     const checkDark = () =>
       setIsDark(document.documentElement.classList.contains("dark"));
 
@@ -119,11 +76,104 @@ const Employee_Dashboard = () => {
     return () => observer.disconnect();
   }, []);
 
+  const fetchEmployeeDashboard = async () => {
+    try {
+      const [leadRes, apptRes, topRes] = await Promise.all([
+        axios.get(`${API}/lead/getallleads`, {
+          params: { role_name: employee.department, name: employee.name },
+        }),
+
+        axios.get(`${API}/appointment/getallappointments`),
+        axios.get(`${API}/lead/getallleads`, {
+          params: { role_name: "admin", name: employee.name },
+        }),
+      ]);
+
+      const leads = leadRes.data?.data || [];
+      const appts = apptRes.data?.data || [];
+      const top = topRes.data?.data || [];
+
+
+      // Counts
+      setLeadCount(leads.length);
+      setIpdCount(appts.filter((a) => a.patient_type === "IPD").length);
+      setOpdCount(appts.filter((a) => a.patient_type === "OPD").length);
+
+      // Follow-ups
+      setFollowUp(
+        leads
+          .sort((a, b) => {
+            if (a.status === "New" && b.status !== "New") return -1;
+            if (a.status !== "New" && b.status === "New") return 1;
+            return new Date(b.createdAt) - new Date(a.createdAt);
+          })
+          .slice(0, 5)
+          .map((l) => ({
+            name: l.name,
+            source: l.source || "Online",
+            date: l.createdAt
+              ? new Date(l.createdAt).toLocaleDateString("en-GB")
+              : "-",
+            status: l.status || "New",
+          }))
+      );
+
+      // Appointments
+      setAppointments(
+        appts
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 5)
+          .map((a) => ({
+            patient: a.patient_name,
+            department: a.treatment,
+            appointmentDate: new Date(a.op_date || a.date).toLocaleDateString(
+              "en-GB"
+            ),
+            doctor: a.surgeon_name || a.consultant,
+          }))
+      );
+
+      const performerMap = {};
+
+      top.forEach((lead) => {
+        if (!lead.bdname) return;
+
+        if (!performerMap[lead.bdname]) {
+          performerMap[lead.bdname] = { converted: 0 };
+        }
+
+        if (lead.status?.toLowerCase() === "converted") {
+          performerMap[lead.bdname].converted += 1;
+        }
+      });
+
+      // Find top employee
+      const topEmployee = Object.entries(performerMap)
+        .map(([name, val]) => ({
+          name,
+          converted: val.converted,
+        }))
+        .sort((a, b) => b.converted - a.converted)[0]; // TOP ONE ONLY
+
+      setPerformers(topEmployee ? [topEmployee] : []);
+    } catch (err) {
+      console.error("Employee dashboard fetch failed", err);
+    }
+  };
+
+  // --- Stats cards ---
+  const statsData = [
+    { title: "Leads", value: leadCount, footer: "My Leads" },
+    { title: "In Patient Details", value: ipdCount, footer: "Total IPD" },
+    { title: "Out Patient Details", value: opdCount, footer: "Total OPD" },
+    { title: "Total Revenue", value: "1,245", footer: "Total Revenue" },
+  ];
+
   return (
     <div>
-      {/* <NavBar title="Dashboard" pagetitle="Main Dashboard" /> */}
       <div className="my-2 grid grid-cols-1 lg:grid-cols-9 gap-3 ">
         <div className="lg:col-span-6 space-y-6">
+          {/* --- Stats Cards --- */}
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {statsData.map((stat, index) => (
               <div
@@ -150,37 +200,34 @@ const Employee_Dashboard = () => {
               </div>
             ))}
           </div>
+
+          {/* --- Today Follow-Up --- */}
           <div className="md:col-span-1 lg:col-span-4 dark:text-white px-2 text-black rounded-xl">
             <p className="font-semibold text-xl mb-3">Today Follow-Up</p>
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="dark:bg-black/30 border-b-2 pb-2 dark:border-overall_bg-dark border-overall_bg-light bg-layout-light">
-                    <th className="p-2  rounded-l-md">Name</th>
+                    <th className="p-2 rounded-l-md">Name</th>
                     <th className="p-2">Source</th>
                     <th className="p-2">Date</th>
                     <th className="p-2 rounded-r-md">Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {follow_up.map((follow_up, idx) => (
+                  {follow_up.map((fu, idx) => (
                     <tr
                       key={idx}
                       className="dark:bg-black/30 border-b-2 dark:border-overall_bg-dark border-overall_bg-light bg-layout-light text-center"
                     >
                       <td className="px-2 py-3 text-sm rounded-l-md">
-                        {follow_up.name}
+                        {fu.name}
                       </td>
-                      <td className="p-2 text-sm font-semibold">
-                        <span className=" text-sm font-normal">
-                          {follow_up.source}
-                        </span>
-                      </td>
-                      <td className="p-2 text-sm ">{follow_up.date}</td>
+                      <td className="p-2 text-sm font-semibold">{fu.source}</td>
+                      <td className="p-2 text-sm">{fu.date}</td>
                       <td className="p-2 text-sm w-32 px-5 items-center rounded-r-md">
-                        <p className="border w-28 dark:bg-overall_bg-dark bg-overall_bg-light text-gray-600 dark:text-white font-medium  dark:border-layout-dark border-layout-light rounded-md py-1">
-                          {" "}
-                          {follow_up.status}
+                        <p className="border w-28 dark:bg-overall_bg-dark bg-overall_bg-light text-gray-600 dark:text-white font-medium dark:border-layout-dark border-layout-light rounded-md py-1">
+                          {fu.status}
                         </p>
                       </td>
                     </tr>
@@ -189,13 +236,15 @@ const Employee_Dashboard = () => {
               </table>
             </div>
           </div>
+
+          {/* --- Upcoming Appointments --- */}
           <div className="md:col-span-1 lg:col-span-4 dark:text-white px-2 text-black rounded-xl">
             <p className="font-semibold text-xl mb-3">Upcoming IPD/OPD</p>
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
-                  <tr className="dark:bg-black/30 border-b-2 pb-2 dark:border-overall_bg-dark border-overall_bg-light bg-layout-light ">
-                    <th className="px-2 py-3  rounded-l-md">Patient</th>
+                  <tr className="dark:bg-black/30 border-b-2 pb-2 dark:border-overall_bg-dark border-overall_bg-light bg-layout-light">
+                    <th className="px-2 py-3 rounded-l-md">Patient</th>
                     <th className="p-2">Department</th>
                     <th className="p-2">Appointment Date</th>
                     <th className="p-2 rounded-r-md">Doctor</th>
@@ -222,23 +271,34 @@ const Employee_Dashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* --- Right Side: Star Performer & Events --- */}
         <div className="lg:col-span-3 space-y-3 mt-6 lg:mt-0">
           <div className="dark:bg-layout-dark bg-layout-light dark:text-white text-black p-4 rounded-xl shadow">
             <h2 className="font-semibold mb-2">Star Performer of the Week</h2>
-            <center>
-              <p className="text-lg font-bold flex justify-center">
-                Dr. Olivia Bennett{" "}
-                <span className="flex items-center ml-2 gap-1 px-2 text-sm dark:bg-overall_bg-dark bg-overall_bg-light rounded-3xl ">
-                  {" "}
-                  4.9 <FaStar size={14} className="text-yellow-400" />
-                </span>{" "}
-              </p>
-              <p className="text-xs text-gray-400 py-1">Neurology</p>
-              <p className="text-xs text-gray-400 flex items-center justify-center">
-                Top Rated Doctor
-              </p>
-            </center>
+            {performers.length > 0 ? (
+              <center>
+                <p className="text-lg font-bold flex justify-center">
+                  {performers[0].name}
+                  <span className="flex items-center ml-2 gap-1 px-2 text-sm dark:bg-overall_bg-dark bg-overall_bg-light rounded-3xl ">
+                    {performers[0].rating}{" "}
+                    <FaStar size={14} className="text-yellow-400" />
+                  </span>
+                </p>
+                {performers[0].dept && (
+                  <p className="text-xs text-gray-400 py-1">
+                    {performers[0].dept}
+                  </p>
+                )}
+                <p className="text-xs text-gray-400 flex items-center justify-center">
+                  Top Rated
+                </p>
+              </center>
+            ) : (
+              <p className="text-center text-gray-400">No performers yet</p>
+            )}
           </div>
+
           <div className="dark:bg-layout-dark bg-layout-light dark:text-white text-black p-4 rounded-xl">
             <h2 className="font-semibold mb-4">Latest Events & News</h2>
             <div className="relative border-l border-gray-500/50 ml-3">

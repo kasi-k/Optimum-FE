@@ -71,7 +71,7 @@ const Tasks = () => {
     try {
       const res = await axios.get(`${API}/task/getalltasks`, {
         params: {
-          role_name: user.role.role_name,
+          department: user.department,
           employee_id: user.employee_id,
         },
       });
@@ -102,7 +102,7 @@ const Tasks = () => {
   const filteredTasks = tasks
     .filter(
       (task) =>
-        user.role.role_name === "admin" ||
+        user.department === "admin" ||
         task.assigned_to.includes(user.employee_id)
     )
     .filter((task) => {
@@ -117,7 +117,7 @@ const Tasks = () => {
     })
     .map((task) => {
       let assignedNames = [];
-      if (user.role.role_name === "admin") {
+      if (user.department === "admin") {
         assignedNames = task.assigned_to.map(
           (id) => users.find((u) => u.employee_id === id)?.name || id
         );
@@ -261,15 +261,18 @@ const Tasks = () => {
           <thead>
             <tr className="font-semibold text-sm dark:bg-layout-dark bg-layout-light border-b-2 dark:border-overall_bg-dark border-overall_bg-light">
               <th className="p-3.5 rounded-l-lg">S.no</th>
-              {["Tasks", "Start Date", "Due Date", "Assigned to", "Status"].map(
+              {["Tasks", "Start Date", "Due Date"].map(
                 (heading) => (
                   <th key={heading} className="p-5">
                     <h1 className="flex items-center justify-center gap-1">
                       {heading} <HiArrowsUpDown className="dark:text-white" />
                     </h1>
                   </th>
+                  
                 )
               )}
+              {user.department === "admin" ?<th>Assigned to</th> :<th>Assigned by</th>}
+<th>Status</th>
               {(canView || canDelete) && (
                 <th className="pr-2 rounded-r-lg">Action</th>
               )}
@@ -295,7 +298,7 @@ const Tasks = () => {
                   <td>{data.task_title}</td>
                   <td>{formatDate(data.start_date)}</td>
                   <td>{formatDate(data.due_date)}</td>
-                  <td>{data.assigned_to_name}</td>
+                   {user.department === "admin" ? <td>{data.assigned_to_name}</td> :<td>{data.createdBy || data.created_by}</td>}
                   <td className="first-letter:capitalize">
                     <span
                       className={`px-2 py-1 rounded-full text-sm ${

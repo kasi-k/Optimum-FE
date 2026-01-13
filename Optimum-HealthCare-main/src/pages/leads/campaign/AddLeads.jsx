@@ -202,7 +202,7 @@ const AddLeads = ({ onclose, campaignId1, fetchCampaignDetails, Platform }) => {
             )}
           </div>
 
-          {/* Status */}
+          {/* Status
           <div>
             <label className="font-medium">Lead Status</label>
             <select
@@ -218,7 +218,7 @@ const AddLeads = ({ onclose, campaignId1, fetchCampaignDetails, Platform }) => {
             {errors.status && (
               <p className="text-xs text-red-500">{errors.status.message}</p>
             )}
-          </div>
+          </div> */}
 
           {/* Notes */}
           <div className="col-span-1 sm:col-span-2 lg:col-span-3">
