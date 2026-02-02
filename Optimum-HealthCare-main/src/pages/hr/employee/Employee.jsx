@@ -12,12 +12,14 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { API } from "../../../Constant";
 import Edit_Profile from "../../dashboard/profile/Edit_Profile";
+import ViewEmployee from "./ViewEmployee";
 
 const itemsPerPage = 10;
 
 const Employee = () => {
   const [employees, setEmployees] = useState([]);
   const [editModal, setEditModal] = useState(false);
+  const [viewModal, setViewModal] = useState(false);
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
 
@@ -34,7 +36,6 @@ const Employee = () => {
   });
   const [addEmployee, setAddEmployee] = useState(false);
 
-  const navigate = useNavigate();
 
   const fetchEmployees = async () => {
     setLoading(true);
@@ -129,8 +130,8 @@ const Employee = () => {
                         className="text-blue-600"
                       />
                     </button>
-                    <button className="cursor-pointer bg-[#BAFFBA] text-green-600 w-fit rounded-sm py-1.5 px-1.5">
-                      <LuEye size={16} />
+                    <button  className="cursor-pointer bg-[#BAFFBA] text-green-600 w-fit rounded-sm py-1.5 px-1.5">
+                      <LuEye      onClick={() =>{   setSelectedEmployeeId(data.employee_id);  setViewModal(true)}} size={16} />
                     </button>
                   </td>
                 </tr>
@@ -164,6 +165,13 @@ const Employee = () => {
           onclose={() => setEditModal(false)}
           onSuccess={fetchEmployees}
           employeeId={selectedEmployeeId}
+        />
+      )}
+      {viewModal && (
+        <ViewEmployee
+          onclose={() => setViewModal(false)}
+          employeeId={selectedEmployeeId}
+          employees={employees}
         />
       )}
     </>

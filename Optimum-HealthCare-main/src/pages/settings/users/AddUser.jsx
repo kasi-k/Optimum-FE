@@ -76,6 +76,7 @@ const AddUser = ({ onclose ,onSuccess}) => {
     const payload = {
       role_id: selectedRole.role_id,
       role_name: selectedRole.role_name,
+      department:selectedRole.department_name,
       email:data.email,
       phone:data.phone,
       created_by: employee.department,
