@@ -66,6 +66,7 @@ const Create_Appointment = ({ onclose, lead }) => {
   const [doctors, setDoctors] = useState([]);
   const [hospitals, setHospitals] = useState([]);
   const [coordinators, setCoordinators] = useState([]);
+  const [autoFilledFields, setAutoFilledFields] = useState(new Set()); // Track autofilled fields
 
   const {
     register,
@@ -77,22 +78,48 @@ const Create_Appointment = ({ onclose, lead }) => {
     resolver: yupResolver(schema),
   });
 
+  // 🔹 Check if field is autofilled from lead
+  const isAutoFilled = (fieldName) => autoFilledFields.has(fieldName);
+
   // 🔹 Autofill form from lead data
   useEffect(() => {
     if (lead) {
-      setValue("patient_name", lead.patient_name || lead.name || "");
-      setValue("age", lead.age || "");
-      setValue("treatment", lead.treatment || "");
-      setValue("gender", lead.gender || "");
-      setValue("city", lead.circle || "");
-      setValue("patient_type", lead.patient_type || "OPD");
-      setPatientType(lead.patient_type || "OPD");
+      const filledFields = new Set();
+      
+      if (lead.patient_name || lead.name) {
+        setValue("patient_name", lead.patient_name || lead.name || "");
+        filledFields.add("patient_name");
+      }
+      if (lead.age) {
+        setValue("age", lead.age);
+        filledFields.add("age");
+      }
+      if (lead.treatment) {
+        setValue("treatment", lead.treatment);
+        filledFields.add("treatment");
+      }
+      if (lead.gender) {
+        setValue("gender", lead.gender);
+        filledFields.add("gender");
+      }
+      if (lead.circle) {
+        setValue("city", lead.circle);
+        filledFields.add("city");
+      }
+      
+      const leadPatientType = lead.patient_type || "OPD";
+      setValue("patient_type", leadPatientType);
+      setPatientType(leadPatientType);
+      filledFields.add("patient_type");
 
       // Optional: prefill consultation_type if OPD
-      if (lead.patient_type === "OPD") {
-        setConsultationType(lead.consultation_type || "Online");
-        setValue("consultation_type", lead.consultation_type || "Online");
+      if (leadPatientType === "OPD" && lead.consultation_type) {
+        setConsultationType(lead.consultation_type);
+        setValue("consultation_type", lead.consultation_type);
+        filledFields.add("consultation_type");
       }
+      
+      setAutoFilledFields(filledFields);
     }
   }, [lead, setValue]);
 
@@ -150,13 +177,12 @@ const Create_Appointment = ({ onclose, lead }) => {
       const payload = {
         ...data,
         consultation_type: patientType === "OPD" ? consultationType : null,
-        campaign_id:lead?.campaign_id,
-        lead_id: lead?.lead_id, // 🔹 Replace campaign_id with lead_id
+        campaign_id: lead?.campaign_id,
+        lead_id: lead?.lead_id,
       };
 
-
       await axios.post(`${API}/appointment/create`, payload);
-      toast.success(`${patientType} created successfully`);
+      toast.success(`${patientType} appointment created successfully`);
       onclose();
     } catch (error) {
       toast.error(
@@ -181,63 +207,76 @@ const Create_Appointment = ({ onclose, lead }) => {
           Create Appointment
         </h2>
 
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="grid grid-cols-3 gap-4"
-        >
+        <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-3 gap-4">
           {/* Patient Type */}
           <div>
-            <label>Patient Type</label>
+            <label className="block text-sm font-medium mb-1 dark:text-gray-200">Patient Type</label>
             <select
               {...register("patient_type")}
               value={patientType}
               onChange={(e) => handleTypeChange(e.target.value)}
-              className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white"
+              disabled={isAutoFilled("patient_type")}
+              className={`w-full border p-2 rounded-md bg-layout-dark text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                isAutoFilled("patient_type")
+                  ? "bg-gray-700 cursor-not-allowed border-gray-500 opacity-75"
+                  : "border-gray-600 hover:border-gray-400"
+              }`}
             >
               <option value="OPD">OPD</option>
               <option value="IPD">IPD</option>
             </select>
             {errors.patient_type && (
-              <p className="text-red-500 text-xs">
-                {errors.patient_type.message}
-              </p>
+              <p className="text-red-500 text-xs mt-1">{errors.patient_type.message}</p>
             )}
           </div>
 
           {/* Patient Info */}
           <div>
-            <label>Patient Name</label>
+            <label className="block text-sm font-medium mb-1 dark:text-gray-200">Patient Name</label>
             <input
               {...register("patient_name")}
               placeholder="Full Name"
-              className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500"
+              readOnly={isAutoFilled("patient_name")}
+              className={`w-full border p-2 rounded-md placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                isAutoFilled("patient_name")
+                  ? "bg-gray-100 dark:bg-gray-800 border-gray-400 cursor-not-allowed text-gray-700 dark:text-gray-300"
+                  : "border-gray-600 hover:border-gray-500 bg-white dark:bg-layout-dark"
+              }`}
             />
             {errors.patient_name && (
-              <p className="text-red-500 text-xs">
-                {errors.patient_name.message}
-              </p>
+              <p className="text-red-500 text-xs mt-1">{errors.patient_name.message}</p>
             )}
           </div>
 
           <div>
-            <label>Age</label>
+            <label className="block text-sm font-medium mb-1 dark:text-gray-200">Age</label>
             <input
               {...register("age")}
               type="number"
               placeholder="Age"
-              className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500"
+              readOnly={isAutoFilled("age")}
+              className={`w-full border p-2 rounded-md placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                isAutoFilled("age")
+                  ? "bg-gray-100 dark:bg-gray-800 border-gray-400 cursor-not-allowed text-gray-700 dark:text-gray-300"
+                  : "border-gray-600 hover:border-gray-500 bg-white dark:bg-layout-dark"
+              }`}
             />
             {errors.age && (
-              <p className="text-red-500 text-xs">{errors.age.message}</p>
+              <p className="text-red-500 text-xs mt-1">{errors.age.message}</p>
             )}
           </div>
 
           {/* Gender */}
           <div>
-            <label>Gender</label>
+            <label className="block text-sm font-medium mb-1 dark:text-gray-200">Gender</label>
             <select
               {...register("gender")}
-              className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white"
+              disabled={isAutoFilled("gender")}
+              className={`w-full border p-2 rounded-md bg-layout-dark text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                isAutoFilled("gender")
+                  ? "bg-gray-700 cursor-not-allowed border-gray-500 opacity-75"
+                  : "border-gray-600 hover:border-gray-400"
+              }`}
             >
               <option value="">Select Gender</option>
               <option value="Male">Male</option>
@@ -245,35 +284,45 @@ const Create_Appointment = ({ onclose, lead }) => {
               <option value="Other">Other</option>
             </select>
             {errors.gender && (
-              <p className="text-red-500 text-xs">{errors.gender.message}</p>
+              <p className="text-red-500 text-xs mt-1">{errors.gender.message}</p>
             )}
           </div>
 
           {/* Treatment */}
           <div>
-            <label>Treatment</label>
+            <label className="block text-sm font-medium mb-1 dark:text-gray-200">Treatment</label>
             <input
               {...register("treatment")}
               placeholder="Treatment"
-              className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500"
+              readOnly={isAutoFilled("treatment")}
+              className={`w-full border p-2 rounded-md placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                isAutoFilled("treatment")
+                  ? "bg-gray-100 dark:bg-gray-800 border-gray-400 cursor-not-allowed text-gray-700 dark:text-gray-300"
+                  : "border-gray-600 hover:border-gray-500 bg-white dark:bg-layout-dark"
+              }`}
             />
           </div>
 
           <div>
-            <label>City</label>
+            <label className="block text-sm font-medium mb-1 dark:text-gray-200">City</label>
             <input
               {...register("city")}
               placeholder="City"
-              className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500"
+              readOnly={isAutoFilled("city")}
+              className={`w-full border p-2 rounded-md placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                isAutoFilled("city")
+                  ? "bg-gray-100 dark:bg-gray-800 border-gray-400 cursor-not-allowed text-gray-700 dark:text-gray-300"
+                  : "border-gray-600 hover:border-gray-500 bg-white dark:bg-layout-dark"
+              }`}
             />
           </div>
 
           {/* Surgeon Dropdown */}
           <div>
-            <label>Surgeon</label>
+            <label className="block text-sm font-medium mb-1 dark:text-gray-200">Surgeon</label>
             <select
               onChange={(e) => handleDoctorSelect(e.target.value)}
-              className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white"
+              className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-gray-400"
             >
               <option value="">Select Surgeon</option>
               {doctors.map((doc) => (
@@ -291,10 +340,10 @@ const Create_Appointment = ({ onclose, lead }) => {
 
           {/* Coordinator Dropdown */}
           <div>
-            <label>Coordinator</label>
+            <label className="block text-sm font-medium mb-1 dark:text-gray-200">Coordinator</label>
             <select
               onChange={(e) => handleCoordinatorSelect(e.target.value)}
-              className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white"
+              className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-gray-400"
             >
               <option value="">Select Coordinator</option>
               {coordinators.map((emp) => (
@@ -311,24 +360,27 @@ const Create_Appointment = ({ onclose, lead }) => {
           </div>
 
           <div>
-            <label>Coordinator No.</label>
+            <label className="block text-sm font-medium mb-1 dark:text-gray-200">Coordinator No.</label>
             <input
               {...register("coordinator_number")}
               placeholder="10-digit number"
-              className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500"
+              className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-gray-500 bg-white dark:bg-layout-dark"
             />
+            {errors.coordinator_number && (
+              <p className="text-red-500 text-xs mt-1">{errors.coordinator_number.message}</p>
+            )}
           </div>
 
           {/* OPD / IPD Sections */}
           {patientType === "OPD" && (
             <>
               <div>
-                <label>Consultation</label>
+                <label className="block text-sm font-medium mb-1 dark:text-gray-200">Consultation</label>
                 <select
                   {...register("consultation_type")}
                   value={consultationType}
                   onChange={(e) => setConsultationType(e.target.value)}
-                  className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white"
+                  className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-gray-400"
                 >
                   <option value="Online">Online</option>
                   <option value="Office">Office</option>
@@ -338,10 +390,10 @@ const Create_Appointment = ({ onclose, lead }) => {
               {consultationType === "Office" && (
                 <>
                   <div>
-                    <label>Hospital</label>
+                    <label className="block text-sm font-medium mb-1 dark:text-gray-200">Hospital</label>
                     <select
                       onChange={(e) => handleHospitalSelect(e.target.value)}
-                      className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white"
+                      className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-gray-400"
                     >
                       <option value="">Select Hospital</option>
                       {hospitals.map((h) => (
@@ -358,30 +410,30 @@ const Create_Appointment = ({ onclose, lead }) => {
                   </div>
 
                   <div>
-                    <label>Hospital Address</label>
+                    <label className="block text-sm font-medium mb-1 dark:text-gray-200">Hospital Address</label>
                     <input
                       {...register("hospital_address")}
-                      placeholder=" address"
-                      className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500"
+                      placeholder="Hospital address"
+                      className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-gray-500 bg-white dark:bg-layout-dark"
                     />
                   </div>
                 </>
               )}
 
               <div>
-                <label>OP Time</label>
+                <label className="block text-sm font-medium mb-1 dark:text-gray-200">OP Time</label>
                 <input
                   {...register("op_time")}
                   type="time"
-                  className="w-full border border-gray-600 p-2 rounded-md"
+                  className="w-full border border-gray-600 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-gray-500 bg-white dark:bg-layout-dark"
                 />
               </div>
               <div>
-                <label>OP Date</label>
+                <label className="block text-sm font-medium mb-1 dark:text-gray-200">OP Date</label>
                 <input
                   {...register("op_date")}
                   type="date"
-                  className="w-full border border-gray-600 p-2 rounded-md"
+                  className="w-full border border-gray-600 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-gray-500 bg-white dark:bg-layout-dark"
                 />
               </div>
             </>
@@ -390,35 +442,35 @@ const Create_Appointment = ({ onclose, lead }) => {
           {patientType === "IPD" && (
             <>
               <div>
-                <label>Surgery Date</label>
+                <label className="block text-sm font-medium mb-1 dark:text-gray-200">Surgery Date</label>
                 <input
                   {...register("surgery_date")}
                   type="date"
-                  className="w-full border border-gray-600 p-2 rounded-md"
+                  className="w-full border border-gray-600 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-gray-500 bg-white dark:bg-layout-dark"
                 />
               </div>
               <div>
-                <label>Admission Time</label>
+                <label className="block text-sm font-medium mb-1 dark:text-gray-200">Admission Time</label>
                 <input
                   {...register("admission_time")}
                   type="time"
-                  className="w-full border border-gray-600 p-2 rounded-md"
+                  className="w-full border border-gray-600 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-gray-500 bg-white dark:bg-layout-dark"
                 />
               </div>
               <div>
-                <label>OT Time</label>
+                <label className="block text-sm font-medium mb-1 dark:text-gray-200">OT Time</label>
                 <input
                   {...register("ot_time")}
                   type="time"
-                  className="w-full border border-gray-600 p-2 rounded-md"
+                  className="w-full border border-gray-600 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-gray-500 bg-white dark:bg-layout-dark"
                 />
               </div>
 
               <div>
-                <label>Hospital</label>
+                <label className="block text-sm font-medium mb-1 dark:text-gray-200">Hospital</label>
                 <select
                   onChange={(e) => handleHospitalSelect(e.target.value)}
-                  className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white"
+                  className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-gray-400"
                 >
                   <option value="">Select Hospital</option>
                   {hospitals.map((h) => (
@@ -431,11 +483,11 @@ const Create_Appointment = ({ onclose, lead }) => {
               </div>
 
               <div>
-                <label>Hospital Address</label>
+                <label className="block text-sm font-medium mb-1 dark:text-gray-200">Hospital Address</label>
                 <input
                   {...register("hospital_address")}
                   placeholder="Auto-filled address"
-                  className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500"
+                  className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-gray-500 bg-white dark:bg-layout-dark"
                 />
               </div>
             </>
@@ -443,19 +495,23 @@ const Create_Appointment = ({ onclose, lead }) => {
 
           {/* Payment */}
           <div>
-            <label>Amount</label>
+            <label className="block text-sm font-medium mb-1 dark:text-gray-200">Amount</label>
             <input
               {...register("amount")}
               type="number"
               placeholder="Amount"
-              className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500"
+              className="w-full border border-gray-600 p-2 rounded-md placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-gray-500 bg-white dark:bg-layout-dark"
             />
+            {errors.amount && (
+              <p className="text-red-500 text-xs mt-1">{errors.amount.message}</p>
+            )}
           </div>
+          
           <div>
-            <label>Payment Mode</label>
+            <label className="block text-sm font-medium mb-1 dark:text-gray-200">Payment Mode</label>
             <select
               {...register("payment_mode")}
-              className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white"
+              className="w-full border border-gray-600 p-2 rounded-md bg-layout-dark text-white focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-gray-400"
             >
               {patientType === "OPD" ? (
                 <>
@@ -474,24 +530,24 @@ const Create_Appointment = ({ onclose, lead }) => {
           </div>
 
           {/* Buttons */}
-          <div className="col-span-3 flex justify-end gap-3 mt-4">
+          <div className="col-span-3 flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={onclose}
-              className="border border-gray-600 px-4 py-1.5 rounded-md"
+              className="border border-gray-600 px-6 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className={`px-4 py-1.5 rounded-md text-white ${
+              className={`px-6 py-2 rounded-md text-white font-medium transition-all ${
                 loading
-                  ? "bg-gray-400"
-                  : "bg-select_layout-dark hover:bg-blue-700"
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-select_layout-dark hover:bg-blue-700 active:bg-blue-800 shadow-md hover:shadow-lg"
               }`}
             >
-              {loading ? "Saving..." : "Save"}
+              {loading ? "Saving..." : "Save Appointment"}
             </button>
           </div>
         </form>
