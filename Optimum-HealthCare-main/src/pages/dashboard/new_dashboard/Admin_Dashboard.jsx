@@ -46,7 +46,7 @@ const Admin_Dashboard = () => {
         axios.get(`${API}/appointment/getallappointments`),
         axios.get(`${API}/campaign/allcampaigns`),
       ]);
-      console.log(leadsRes);
+      
 
       const leadCount = leadsRes.data?.data?.length || 0;
 

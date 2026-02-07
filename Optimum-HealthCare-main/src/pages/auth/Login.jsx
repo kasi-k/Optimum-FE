@@ -23,24 +23,46 @@ const Login = () => {
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Get user location on mount
+  // // Get user location on mount
+  // useEffect(() => {
+  //   if (navigator.geolocation) {
+  //     navigator.geolocation.getCurrentPosition(
+  //       (pos) => {
+  //         setLocation({
+  //           lat: pos.coords.latitude,
+  //           lng: pos.coords.longitude,
+  //         });
+  //       },
+  //       (err) => {
+  //         console.warn("Location not available:", err.message);
+  //         setLocation(null);
+  //       },
+  //       { enableHighAccuracy: true }
+  //     );
+  //   }
+  // }, []);
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setLocation({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-          });
-        },
-        (err) => {
-          console.warn("Location not available:", err.message);
-          setLocation(null);
-        },
-        { enableHighAccuracy: true }
-      );
+  const getIPLocation = async () => {
+    try {
+      // Free IP geolocation API - 1000 req/day
+      const res = await fetch('https://ipapi.co/json/');
+      const data = await res.json();
+      
+      setLocation({
+        lat: data.latitude,
+        lng: data.longitude,
+        city: data.city,  // Bonus: city name for Chennai
+      });
+      
+      console.log('IP Location:', data.city, data.latitude, data.longitude);
+    } catch (err) {
+      console.warn('IP location failed:', err);
+      setLocation(null);
     }
-  }, []);
+  };
+  
+  getIPLocation();
+}, []);
 
   // React Hook Form
   const {
